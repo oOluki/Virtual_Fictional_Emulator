@@ -10,6 +10,9 @@ ERROR_NONE = 0,
 ERROR_INVALID_FILE_PATH,
 ERROR_INVALID_USAGE,
 ERROR_UNKOWN_INSTRUCTION,
+ERROR_INVALID_OPERAND,
+ERROR_INVALID_OPERAND_COUNT,
+ERROR_INVALID_SYNTAX,
 
 ERROR_PROGRAM_SIZE_OVERFLOW,
 
@@ -51,10 +54,13 @@ void stream_to_stream(Stream* stream, unsigned char* data, unsigned long size){
 typedef enum Instructions{
 INSTRUCTION_NONE = 0,
 INSTRUCTION_HALT,
-INSTRUCTION_WRITE,
-INSTRUCTION_READ,
-INSTRUCTION_JUMP,
+INSTRUCTION_DUMP_STACK,
 
+INSTRUCTION_PUSH,
+INSTRUCTION_POP,
+INSTRUCTION_MOVE,
+INSTRUCTION_COPY,
+INSTRUCTION_WRITE,
 
 // for internal counting purposes
 INTERNAL_INSTRUCTION_COUNT
@@ -63,6 +69,7 @@ INTERNAL_INSTRUCTION_COUNT
 
 typedef union Var{
 long           as_int64;
+unsigned long  as_uint64;
 double         as_float64;
 void*          as_ptr;
 Instruction_Id as_inst_id;
