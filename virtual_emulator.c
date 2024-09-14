@@ -13,17 +13,11 @@ enum States{
 
 struct VirtualMachine{
 
-Inst* instructions;
-unsigned long inst_address;
-unsigned long inst_count;
+unsigned char* internal_memory;
+unsigned long internal_memory_size;
 
 Var* stack;
 unsigned long stack_size;
-
-Var reg;
-
-int state;
-
 } virtual_machine;
 
 
@@ -46,26 +40,27 @@ void load_program(const char* path){
 
     fclose(file);
 
-    virtual_machine.instructions = (Inst*)malloc(stream.size + STACK_CAP);
-    virtual_machine.inst_count = stream.size / sizeof(Inst);
-    virtual_machine.inst_address = 0;
-    virtual_machine.stack = (Var*)(virtual_machine.instructions + virtual_machine.inst_count);
+    virtual_machine.internal_memory = (unsigned char*)malloc(stream.size + STACK_CAP);
+    virtual_machine.internal_memory_size = stream.size;
+    
+    virtual_machine.stack = (Var*)(virtual_machine.internal_memory + stream.size);
     virtual_machine.stack_size = 0;
 
-    for(unsigned long i = 0; i < virtual_machine.inst_count; i += 1){
-        virtual_machine.instructions[i] = ((Inst*)stream.data)[i];
+    for(unsigned long i = 0; i < virtual_machine.internal_memory_size; i += 1){
+        virtual_machine.internal_memory[i] = stream.data[i];
     }
 
     free(stream.data);
 }
 
-
-void eval_inst(Inst inst){
-    switch (inst.id.as_int64)
+// returns the number of bytes taken by the instruction, so to be convinient to jump to next inrtuction
+unsigned long eval_inst(unsigned long inst_address){
+    const Inst inst = *(Inst*)(virtual_machine.internal_memory + inst_address);
+    switch (inst)
     {
     case INSTRUCTION_HALT:
         exit(0);
-        break;
+        return sizeof(Inst);
     case INSTRUCTION_DUMP_STACK:
         for(unsigned long i = 0; i < virtual_machine.stack_size; i+=1){
             const Var var = virtual_machine.stack[i];
@@ -74,18 +69,36 @@ void eval_inst(Inst inst){
                 i, var.as_int64, var.as_uint64, var.as_float64, var.as_ptr
             );
         }
-        break;
+        return sizeof(Inst);
 
     case INSTRUCTION_PUSH:
-        virtual_machine.stack[virtual_machine.stack_size++] = inst.operand1;
-        break;
+        virtual_machine.stack[virtual_machine.stack_size++] =
+        *(Var*)(virtual_machine.internal_memory + inst_address + sizeof(Inst));
+        return sizeof(Inst) + sizeof(Var);
     case INSTRUCTION_POP:
         virtual_machine.stack_size -= 1;
-        break;
+        return sizeof(Inst);
+    case INSTRUCTION_CLEAN:
+        virtual_machine.stack_size = 0;
+        return sizeof(Inst);
+    case INSTRUCTION_DUP:
+        virtual_machine.stack[virtual_machine.stack_size] = virtual_machine.stack[virtual_machine.stack_size - 1];
+        virtual_machine.stack_size += 1;
+        return sizeof(Inst);
+    case INSTRUCTION_READ:{
+        const unsigned long i = virtual_machine.stack[virtual_machine.stack_size - 1].as_uint64;
+        virtual_machine.stack[virtual_machine.stack_size - 1] = virtual_machine.stack[i];
+    } return sizeof(Inst);
+    case INSTRUCTION_SET:
+        virtual_machine.stack[virtual_machine.stack[virtual_machine.stack_size - 2].as_uint64] =
+        virtual_machine.stack[virtual_machine.stack[virtual_machine.stack_size - 1].as_uint64];
+        virtual_machine.stack_size -= 2;
+        return sizeof(Inst);
     
     default:
-        printf("[ERROR] Unkown Instruction %u\n", inst.id.as_inst_id);
-        break;
+        printf("[ERROR] Unkown Instruction %u\n", (unsigned int)inst);
+        exit(ERROR_UNKOWN_INSTRUCTION);
+        return sizeof(Inst);
     }
 }
 
@@ -95,41 +108,18 @@ void eval_inst(Inst inst){
 int main(int argc, char** argv){
 
 	if(argc < 2){
-		printf("[HELP] Usage: ./vimulator <path_to_executable> -<optional: flags>\n");
+		printf("[HELP] Usage: ./vimulator <path_to_executable>\n");
 		printf("[ERROR] Expected At Least One Argument, Got NONE Instead\n");
 		return ERROR_INVALID_USAGE;
 	}
 
 	load_program(argv[1]);
 
-
-
-    for(unsigned long i = 0; i < virtual_machine.inst_count; i += 1){
-        eval_inst(virtual_machine.instructions[i]);
-    }
-
-    const char* show_stack_flag = "-show_stack";
-
-    for(int i = 2; i < argc; i+=1){
-        int flag_on = 1;
-        for(unsigned int j = 0; argv[j] && show_stack_flag[j]; j+=1){
-            if(argv[i][j] != show_stack_flag[j]){
-                flag_on = 0;
-                break;
-            }
-        }
-        if(flag_on){
-            printf("stack(size=%lu):\n", virtual_machine.stack_size);
-            for(unsigned long j = 0; j < virtual_machine.stack_size; j += 1){
-                const Var var = virtual_machine.stack[j];
-                printf(
-                    "%lu-- i: %li, u: %lu, f: %f, ptr: %p\n",
-                    j, var.as_int64, var.as_uint64, var.as_float64, var.as_ptr
-                );
-            }
-            break;
-        }
-    }
+    for(
+        unsigned long i = 0;
+        i < virtual_machine.internal_memory_size;
+        i += eval_inst(i)
+    );
 
 
     return 0;

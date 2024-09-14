@@ -153,32 +153,27 @@ static inline Exp parse_expression(String str_exp, unsigned long index){
 	}
 
 	if(compare_str(inst_str, MKSTR("halt")))
-		return (Exp){.index = index, .instruction = (Inst){.id = INSTRUCTION_HALT}};
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_HALT};
 	if(compare_str(inst_str, MKSTR("dump")))
-		return (Exp){.index = index, .instruction = (Inst){.id = INSTRUCTION_DUMP_STACK}};
-	if(compare_str(inst_str, MKSTR("push"))){
-		const String operand_str = (String){
-			.c_str = inst_str.c_str + inst_str.size,
-			.size = str_exp.size - inst_str.size
-		};
-		return (Exp){
-			.index = index,
-			.instruction = (Inst){
-				.id = INSTRUCTION_PUSH,
-				.operand1 = parse_operand(operand_str)
-			}
-		};
-	}
-	if(compare_str(inst_str, MKSTR("pop"))){
-		return (Exp){
-			.index = index,
-			.instruction = (Inst){
-				.id = INSTRUCTION_POP,
-			}
-		};
-	}
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_DUMP_STACK};
 
-	printf("[ERROR] %lu- Unknown Instruction '", index); print_str(inst_str); printf("'\n");
+	if(compare_str(inst_str, MKSTR("push"))){
+		const String operand_str = (String){.c_str = inst_str.c_str + inst_str.size, .size = str_exp.size - inst_str.size};
+		return (Exp){.num_of_operands = 1, .instruction = INSTRUCTION_PUSH, .operand = parse_operand(operand_str)};
+	}
+	if(compare_str(inst_str, MKSTR("pop")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_POP};
+	if(compare_str(inst_str, MKSTR("clean")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_CLEAN};
+	if(compare_str(inst_str, MKSTR("dup")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_DUP};
+	if(compare_str(inst_str, MKSTR("read")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_READ};
+	if(compare_str(inst_str, MKSTR("set")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_SET};
+	
+
+	printf("[ERROR] Unknown Instruction '"); print_str(inst_str); printf("'\n");
 	exit(ERROR_UNKOWN_INSTRUCTION);
 	
 }
@@ -217,7 +212,10 @@ void write_program(const Program program, const char* output_path){
 
 	for(unsigned long i = 0; i < program.size; i+=1){
 		const Exp expression = ((Exp*)program.data)[i];
-		fwrite(&expression.instruction, SIZEOF_CHUNK, 3, file);
+		fwrite(&expression.instruction, sizeof(Inst), 1, file);
+		if(expression.num_of_operands){
+			fwrite(&expression.operand, sizeof(Var), 1, file);
+		}
 	}
 
 

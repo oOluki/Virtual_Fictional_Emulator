@@ -2,28 +2,40 @@
 #include <stdlib.h>
 #include "core.h"
 
-
-void print_inst(Inst inst){
-    switch (inst.id.as_inst_id)
+// returns the size taken by the instruction for convenience
+unsigned long print_inst(const Program program, unsigned long inst_address){
+    const Inst inst = *(Inst*)(program.data + inst_address);
+    switch (inst)
     {
     case INSTRUCTION_HALT:
         printf("halt;\n");
-        break;
+        return sizeof(Inst);
     case INSTRUCTION_DUMP_STACK:
         printf("dump;\n");
-        break;
-    case INSTRUCTION_PUSH:
+        sizeof(Inst);
+        return sizeof(Inst);
+    case INSTRUCTION_PUSH:{
+        const Var operand = *(Var*)(program.data + inst_address + sizeof(Inst));
         printf("push (f: %f; li: %li; lu: %lu; ptr: %p);\n",
-        inst.operand1.as_float64, inst.operand1.as_int64, inst.operand1.as_uint64, inst.operand1.as_ptr);
-        break;
+        operand.as_float64, operand.as_int64, operand.as_uint64, operand.as_ptr);
+    } return sizeof(Inst) + sizeof(Var);
     case INSTRUCTION_POP:
-        printf("pop\n");
-        break;
+        printf("pop;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_CLEAN:
+        printf("clean;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_DUP:
+        printf("dup;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_SET:
+        printf("set;\n");
+        return sizeof(Inst);
     
     default:
-        printf("[ERROR] Unkown Instruction %li\n", inst.id.as_int64);
+        printf("[ERROR] Unkown Instruction %u\n", inst);
         exit(ERROR_UNKOWN_INSTRUCTION);
-        break;
+        return sizeof(Inst);
     }
 }
 
@@ -43,35 +55,20 @@ int main(int argc, char** argv){
 		exit(ERROR_INVALID_FILE_PATH);
 	}
 
-    Stream stream = (Stream){.data = malloc(1024), .size = 0, .capacity = 1024};
+    Program program = (Program){.data = malloc(1024), .size = 0, .capacity = 1024};
 
     for(; !feof(file);){
-        stream.size += SIZEOF_CHUNK * fread(stream.data + stream.size, SIZEOF_CHUNK, stream.capacity / SIZEOF_CHUNK, file);
-        if(stream.size >= stream.capacity){
-            resize_stream(&stream, 2 * stream.capacity);
+        program.size += SIZEOF_CHUNK * fread(program.data + program.size, SIZEOF_CHUNK, program.capacity / SIZEOF_CHUNK, file);
+        if(program.size >= program.capacity){
+            resize_stream(&program, 2 * program.capacity);
         }
     }
 
-    stream.data[stream.size] = '\0';
-
     fclose(file);
 
-    if(stream.size % sizeof(Inst)){
-        printf("[WARNING] Invalid Program Size, Size Of Program Is Not A Multiple Of The Size Of Instructions\n");
-    }
+    printf("size of program: %lu bytes\n\n", program.size);
 
-    printf("size of program: %lu instructions\n\n", (unsigned long)(stream.size / sizeof(Inst)));
-
-    for(unsigned long i = 0; i < stream.size; i += sizeof(Inst)){
-        const Var* current_ptr = (Var*)(stream.data + i);
-        Inst inst = (Inst){
-            .id = *current_ptr,
-            .operand1 = *(current_ptr + 1),
-            .operand2 = *(current_ptr + 2)
-        };
-        print_inst(inst);
-    }
-
+    for(unsigned long i = 0; i < program.size; i += print_inst(program, i));
 
 	return 0;
 }

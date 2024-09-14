@@ -1,0 +1,23 @@
+push 1;
+
+push 3;
+
+dup;
+
+push 1;
+
+push 0;
+
+set;
+
+push 0;
+
+push 2;
+
+set;
+
+pop;
+
+dump;
+
+halt;

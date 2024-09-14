@@ -53,18 +53,50 @@ void stream_to_stream(Stream* stream, unsigned char* data, unsigned long size){
 
 typedef enum Instructions{
 INSTRUCTION_NONE = 0,
+
 INSTRUCTION_HALT,
 INSTRUCTION_DUMP_STACK,
 
+// pushes element to the end of the stack
 INSTRUCTION_PUSH,
+// removes the last element from the stack
 INSTRUCTION_POP,
-INSTRUCTION_MOVE,
-INSTRUCTION_COPY,
-INSTRUCTION_WRITE,
+// clears the whole stack
+INSTRUCTION_CLEAN,
+// duplicates the element on top of the stack
+INSTRUCTION_DUP,
+// reads the element at the stack position given by the element on top of the stack, replacing
+// the element on top of the stack by a copy of the read element
+INSTRUCTION_READ,
+// takes the stack positions given by the 2 elements on top of the stack and sets the element at the first position
+// to the element at the second position. This instruction consumes the 2 elements on top of the stack
+INSTRUCTION_SET,
+
+// TODO: Implement arithmetic
+
+INSTRUCTION_PLUSI,
+INSTUCTION_MINUSI,
+INSTRUCTION_MULI,
+INSTRUCTION_DIVI,
+
+INSTRUCTION_PLUSU,
+INSTUCTION_MINUSU,
+INSTRUCTION_MULU,
+INSTRUCTION_DIVU,
+
+INSTRUCTION_PLUSF,
+INSTUCTION_MINUSF,
+INSTRUCTION_MULF,
+INSTRUCTION_DIVF,
+
+INSTRUCTION_PLUSP,
+INSTUCTION_MINUSP,
+INSTRUCTION_MULP,
+INSTRUCTION_DIVP,
 
 // for internal counting purposes
 INTERNAL_INSTRUCTION_COUNT
-} Instruction_Id;
+} Inst;
 
 
 typedef union Var{
@@ -72,24 +104,18 @@ long           as_int64;
 unsigned long  as_uint64;
 double         as_float64;
 void*          as_ptr;
-Instruction_Id as_inst_id;
+Inst           as_inst;
 } Var;
 
-
-typedef struct Inst{
-Var id;
-Var operand1;
-Var operand2;
-} Inst;
-
 typedef struct Expression{
-	unsigned long index;
+    int num_of_operands;
 	Inst instruction;
+    Var operand;
 } Exp;
 
 typedef Stream Program;
 
-#define SIZEOF_CHUNK sizeof(Var)
+#define SIZEOF_CHUNK sizeof(unsigned char)
 
 
 #endif //END OF FILE ================
