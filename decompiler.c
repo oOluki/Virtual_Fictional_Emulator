@@ -23,7 +23,7 @@ size_t print_inst(const Program program, size_t inst_address){
 
     case INSTRUCTION_PUSH:{
         const Var operand = *(Var*)(program.data + inst_address + sizeof(Inst));
-        printf("push (f: %f; li: %li; lu: %lu; ptr: %p);\n",
+        printf("push (f: %f; int64: %" PRId64 "; uint64: %" PRIu64 "; ptr: %p);\n",
         operand.as_float64, operand.as_int64, operand.as_uint64, operand.as_ptr);
     } return sizeof(Inst) + sizeof(Var);
     case INSTRUCTION_POP:
