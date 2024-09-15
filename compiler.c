@@ -21,8 +21,7 @@ static inline void print_str(const String str){
 	}
 }
 
-unsigned char data[MAX_COMP_STC_STRM_MEMCAP];
-Stream stream = (Stream){.data = data, .size = 0, .capacity = MAX_COMP_STC_STRM_MEMCAP};
+Stream stream;
 
 #define MKSTR(INPUT) (String){.c_str = INPUT, .size = (sizeof(INPUT) - 1) / sizeof(char)}
 #define INGORED_CHAR(CHAR) (CHAR == ' ' || CHAR == '\n' || CHAR == '\t')
@@ -118,9 +117,9 @@ static inline int compare_str(String str1, String str2){
 
 }
 
-size_t ul_pow(size_t base, size_t exponent){
-	size_t output = 1;
-	for(size_t i = 0; i < exponent; i+=1){
+uint64_t u64_pow(uint64_t base, uint64_t exponent){
+	uint64_t output = 1;
+	for(uint64_t i = 0; i < exponent; i+=1){
 		output *= base;
 	}
 	return output;
@@ -140,9 +139,9 @@ static inline int get_int(char c, String context){
 }
 
 static inline Var get_operand(String str){
-	size_t aux = 0;
+	uint64_t aux = 0;
 
-	size_t exp_factor = 0;
+	uint64_t exp_factor = 0;
 	int is_float = 0;
 	int is_negative = str.c_str[0] == '-';
 
@@ -164,11 +163,11 @@ static inline Var get_operand(String str){
 			exp_factor = str.size - i;
 			continue;
 		}
-		aux += (size_t)(get_int(str.c_str[i], str)) * ul_pow(10, str.size - i - 1);
+		aux += (uint64_t)(get_int(str.c_str[i], str)) * u64_pow(10, (uint64_t)(str.size - i - 1));
 	}
 	Var output;
-	if(is_float == 1) output.as_float64 = aux / (double)(ul_pow(10, exp_factor));
-	else if(is_negative == 1) output.as_int64 = -aux;
+	if(is_float == 1) output.as_float64 = (double)(aux / (double)(u64_pow(10, exp_factor)));
+	else if(is_negative == 1) output.as_int64 = -(int64_t)(aux);
 	else output.as_uint64 = aux;
 
 	return output;
@@ -369,9 +368,12 @@ int main(int argc, char** argv){
 		return ERROR_INVALID_USAGE;
 	}
 
-	unsigned char data[PROGRAM_CAP];
+	unsigned char program_data[PROGRAM_CAP];
+	unsigned char stream_data[MAX_COMP_STC_STRM_MEMCAP];
 
-	Program program = (Program){.data = data, .size = 0, .capacity = PROGRAM_CAP / sizeof(Exp)};
+	stream = (Stream){.data = stream_data, .size = 0, .capacity = MAX_COMP_STC_STRM_MEMCAP};
+
+	Program program = (Program){.data = program_data, .size = 0, .capacity = PROGRAM_CAP / sizeof(Exp)};
 
 	S_file_t file = read_file((String){}, argv[1]);
 

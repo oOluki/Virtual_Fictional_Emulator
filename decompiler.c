@@ -150,7 +150,7 @@ int main(int argc, char** argv){
 
     fclose(file);
 
-    printf("size of program: %lu bytes\n\n", program.size);
+    printf("size of program: %zu bytes\n\n", program.size);
 
     for(size_t i = 0; i < program.size; i += print_inst(program, i));
 
