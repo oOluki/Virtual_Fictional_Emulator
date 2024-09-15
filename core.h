@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 
 enum Errors{
@@ -113,8 +114,8 @@ INTERNAL_INSTRUCTION_COUNT
 
 
 typedef union Var{
-long           as_int64;
-unsigned long  as_uint64;
+int64_t        as_int64;
+uint64_t       as_uint64;
 double         as_float64;
 void*          as_ptr;
 Inst           as_inst;

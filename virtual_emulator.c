@@ -14,12 +14,12 @@ enum States{
 struct VirtualMachine{
 
 unsigned char* internal_memory;
-unsigned long internal_memory_size;
+size_t internal_memory_size;
 
 Var* stack;
-unsigned long stack_size;
+size_t stack_size;
 
-unsigned long ip;
+size_t ip;
 } vm;
 
 
@@ -32,7 +32,7 @@ void load_program(const char* path){
 	}
 
     Stream stream = (Stream){.data = malloc(1024), .size = 0, .capacity = 1024};
-    unsigned long inst_count = 0;
+    size_t inst_count = 0;
 
     for(; !feof(file);){
         stream.size += (SIZEOF_CHUNK) * fread(stream.data + stream.size, SIZEOF_CHUNK, stream.capacity / SIZEOF_CHUNK, file);
@@ -51,7 +51,7 @@ void load_program(const char* path){
 
     vm.ip = 0;
 
-    for(unsigned long i = 0; i < vm.internal_memory_size; i += 1){
+    for(size_t i = 0; i < vm.internal_memory_size; i += 1){
         vm.internal_memory[i] = stream.data[i];
     }
 
@@ -59,7 +59,7 @@ void load_program(const char* path){
 }
 
 // returns the number of bytes taken by the instruction, so to be convinient to jump to next instruction
-unsigned long eval_inst(unsigned long inst_address){
+size_t eval_inst(size_t inst_address){
     const Inst inst = *(Inst*)(vm.internal_memory + inst_address);
     switch (inst)
     {
@@ -67,7 +67,7 @@ unsigned long eval_inst(unsigned long inst_address){
         exit(0);
         return sizeof(Inst);
     case INSTRUCTION_DUMP_STACK:
-        for(unsigned long i = 0; i < vm.stack_size; i+=1){
+        for(size_t i = 0; i < vm.stack_size; i+=1){
             const Var var = vm.stack[i];
             printf(
                 "%lu-- i: %li, u: %lu, f: %f, ptr: %p\n",
@@ -97,7 +97,7 @@ unsigned long eval_inst(unsigned long inst_address){
         vm.stack_size += 1;
         return sizeof(Inst);
     case INSTRUCTION_READ:{
-        const unsigned long i = vm.stack[vm.stack_size - 1].as_uint64;
+        const size_t i = vm.stack[vm.stack_size - 1].as_uint64;
         vm.stack[vm.stack_size - 1] = vm.stack[i];
     } return sizeof(Inst);
     case INSTRUCTION_SET:

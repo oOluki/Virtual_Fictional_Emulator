@@ -3,7 +3,7 @@
 #include "core.h"
 
 // returns the size taken by the instruction for convenience
-unsigned long print_inst(const Program program, unsigned long inst_address){
+size_t print_inst(const Program program, size_t inst_address){
     const Inst inst = *(Inst*)(program.data + inst_address);
     switch (inst)
     {
@@ -152,7 +152,7 @@ int main(int argc, char** argv){
 
     printf("size of program: %lu bytes\n\n", program.size);
 
-    for(unsigned long i = 0; i < program.size; i += print_inst(program, i));
+    for(size_t i = 0; i < program.size; i += print_inst(program, i));
 
 	return 0;
 }
