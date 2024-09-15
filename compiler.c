@@ -158,6 +158,8 @@ static inline Exp parse_expression(String str_exp, unsigned long index){
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_DUMP_STACK};
 	if(compare_str(inst_str, MKSTR("gsp")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_GSP};
+	if(compare_str(inst_str, MKSTR("ip")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_IP};
 
 	if(compare_str(inst_str, MKSTR("push"))){
 		const String operand_str = (String){.c_str = inst_str.c_str + inst_str.size, .size = str_exp.size - inst_str.size};
@@ -174,6 +176,17 @@ static inline Exp parse_expression(String str_exp, unsigned long index){
 	if(compare_str(inst_str, MKSTR("set")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_SET};
 	
+	if(compare_str(inst_str, MKSTR("not")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_NOT};
+	if(compare_str(inst_str, MKSTR("eq")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_EQUAL};
+	if(compare_str(inst_str, MKSTR("jmp")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_JMP};
+	if(compare_str(inst_str, MKSTR("jmpf")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_JMP_IF};
+	if(compare_str(inst_str, MKSTR("jmpnf")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_JMP_IFNOT};
+	
 	if(compare_str(inst_str, MKSTR("plusi")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_PLUSI};
 	if (compare_str(inst_str, MKSTR("minusi")))
@@ -182,6 +195,10 @@ static inline Exp parse_expression(String str_exp, unsigned long index){
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_MULI};
 	if(compare_str(inst_str, MKSTR("divi")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_DIVI};
+	if(compare_str(inst_str, MKSTR("smalleri")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_SMALLERI};
+	if(compare_str(inst_str, MKSTR("biggeri")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_BIGGERI};
 	
 	if(compare_str(inst_str, MKSTR("plusu")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_PLUSU};
@@ -191,6 +208,10 @@ static inline Exp parse_expression(String str_exp, unsigned long index){
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_MULU};
 	if(compare_str(inst_str, MKSTR("divu")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_DIVU};
+	if(compare_str(inst_str, MKSTR("smalleru")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_SMALLERU};
+	if(compare_str(inst_str, MKSTR("biggeru")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_BIGGERU};
 
 	if(compare_str(inst_str, MKSTR("plusf")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_PLUSF};
@@ -200,6 +221,10 @@ static inline Exp parse_expression(String str_exp, unsigned long index){
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_MULF};
 	if(compare_str(inst_str, MKSTR("divf")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_DIVF};
+	if(compare_str(inst_str, MKSTR("smallerf")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_SMALLERF};
+	if(compare_str(inst_str, MKSTR("biggerf")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_BIGGERF};
 	
 	
 

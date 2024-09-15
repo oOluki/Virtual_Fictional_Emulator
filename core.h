@@ -58,6 +58,9 @@ INSTRUCTION_HALT,
 INSTRUCTION_DUMP_STACK,
 // pushes the current stack position (stack size - 1) to the top of the stack as_uint64
 INSTRUCTION_GSP,
+// pushes the next instruction address to the top of the stack as_uint64. This basically acts as a
+// convinient way to make and access labels. 
+INSTRUCTION_IP,
 
 // pushes element to the end of the stack
 INSTRUCTION_PUSH,
@@ -74,20 +77,32 @@ INSTRUCTION_READ,
 // to the element at the second position. This instruction consumes the 2 elements on top of the stack
 INSTRUCTION_SET,
 
+INSTRUCTION_NOT,
+INSTRUCTION_EQUAL,
+INSTRUCTION_JMP,
+INSTRUCTION_JMP_IF,
+INSTRUCTION_JMP_IFNOT,
+
 INSTRUCTION_PLUSI,
 INSTRUCTION_MINUSI,
 INSTRUCTION_MULI,
 INSTRUCTION_DIVI,
+INSTRUCTION_SMALLERI,
+INSTRUCTION_BIGGERI,
 
 INSTRUCTION_PLUSU,
 INSTRUCTION_MINUSU,
 INSTRUCTION_MULU,
 INSTRUCTION_DIVU,
+INSTRUCTION_SMALLERU,
+INSTRUCTION_BIGGERU,
 
 INSTRUCTION_PLUSF,
 INSTRUCTION_MINUSF,
 INSTRUCTION_MULF,
 INSTRUCTION_DIVF,
+INSTRUCTION_SMALLERF,
+INSTRUCTION_BIGGERF,
 
 // for internal counting purposes
 INTERNAL_INSTRUCTION_COUNT

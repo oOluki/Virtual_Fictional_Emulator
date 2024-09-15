@@ -18,6 +18,8 @@ unsigned long internal_memory_size;
 
 Var* stack;
 unsigned long stack_size;
+
+unsigned long ip;
 } vm;
 
 
@@ -30,6 +32,7 @@ void load_program(const char* path){
 	}
 
     Stream stream = (Stream){.data = malloc(1024), .size = 0, .capacity = 1024};
+    unsigned long inst_count = 0;
 
     for(; !feof(file);){
         stream.size += (SIZEOF_CHUNK) * fread(stream.data + stream.size, SIZEOF_CHUNK, stream.capacity / SIZEOF_CHUNK, file);
@@ -45,6 +48,8 @@ void load_program(const char* path){
     
     vm.stack = (Var*)(vm.internal_memory + stream.size);
     vm.stack_size = 0;
+
+    vm.ip = 0;
 
     for(unsigned long i = 0; i < vm.internal_memory_size; i += 1){
         vm.internal_memory[i] = stream.data[i];
@@ -73,6 +78,9 @@ unsigned long eval_inst(unsigned long inst_address){
     case INSTRUCTION_GSP:
         vm.stack[vm.stack_size - 1].as_uint64 = (vm.stack_size++) - 1;
         return sizeof(Inst);
+    case INSTRUCTION_IP:
+        vm.stack[vm.stack_size++].as_uint64 = inst_address + sizeof(Inst);
+        return sizeof(Inst);
 
     case INSTRUCTION_PUSH:
         vm.stack[vm.stack_size++] =
@@ -97,6 +105,34 @@ unsigned long eval_inst(unsigned long inst_address){
         vm.stack[vm.stack[vm.stack_size - 1].as_uint64];
         vm.stack_size -= 2;
         return sizeof(Inst);
+    
+    case INSTRUCTION_NOT:
+        vm.stack[vm.stack_size - 1].as_uint64 = vm.stack[vm.stack_size - 1].as_uint64? 0 : 1;
+        return sizeof(Inst);
+    case INSTRUCTION_EQUAL:
+        vm.stack[vm.stack_size - 2].as_uint64 =
+        (vm.stack[vm.stack_size - 2].as_uint64 == vm.stack[vm.stack_size - 1].as_uint64)? 1 : 0;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_JMP:
+        vm.ip = vm.stack[vm.stack_size-- - 1].as_uint64;
+        return 0;
+    case INSTRUCTION_JMP_IF:
+        if(vm.stack[vm.stack_size - 2].as_uint64){
+            vm.ip = vm.stack[vm.stack_size - 1].as_uint64;
+            vm.stack_size -= 2;
+            return 0;
+        }
+        vm.stack_size -= 2;
+        return sizeof(Inst);
+    case INSTRUCTION_JMP_IFNOT:
+        if(vm.stack[vm.stack_size - 2].as_uint64 == 0){
+            vm.ip = vm.stack[vm.stack_size - 1].as_uint64;
+            vm.stack_size -= 2;
+            return 0;
+        }
+        vm.stack_size -= 2;
+        return sizeof(Inst);
 
     case INSTRUCTION_PLUSI:
         vm.stack[vm.stack_size - 2].as_int64 = vm.stack[vm.stack_size - 1].as_int64 + vm.stack[vm.stack_size - 2].as_int64;
@@ -112,6 +148,14 @@ unsigned long eval_inst(unsigned long inst_address){
         return sizeof(Inst);
     case INSTRUCTION_DIVI:
         vm.stack[vm.stack_size - 2].as_int64 = vm.stack[vm.stack_size - 2].as_int64 / vm.stack[vm.stack_size - 1].as_int64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_SMALLERI:
+        vm.stack[vm.stack_size - 2].as_uint64 = (vm.stack[vm.stack_size - 2].as_int64 < vm.stack[vm.stack_size - 1].as_int64);
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_BIGGERI:
+        vm.stack[vm.stack_size - 2].as_uint64 = (vm.stack[vm.stack_size - 2].as_int64 > vm.stack[vm.stack_size - 1].as_int64);
         vm.stack_size -= 1;
         return sizeof(Inst);
 
@@ -131,6 +175,14 @@ unsigned long eval_inst(unsigned long inst_address){
         vm.stack[vm.stack_size - 2].as_uint64 = vm.stack[vm.stack_size - 2].as_uint64 / vm.stack[vm.stack_size - 1].as_uint64;
         vm.stack_size -= 1;
         return sizeof(Inst);
+    case INSTRUCTION_SMALLERU:
+        vm.stack[vm.stack_size - 2].as_uint64 = (vm.stack[vm.stack_size - 2].as_uint64 < vm.stack[vm.stack_size - 1].as_uint64);
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_BIGGERU:
+        vm.stack[vm.stack_size - 2].as_uint64 = (vm.stack[vm.stack_size - 2].as_uint64 > vm.stack[vm.stack_size - 1].as_uint64);
+        vm.stack_size -= 1;
+        return sizeof(Inst);
 
     case INSTRUCTION_PLUSF:
         vm.stack[vm.stack_size - 2].as_float64 = vm.stack[vm.stack_size - 1].as_float64 + vm.stack[vm.stack_size - 2].as_float64;
@@ -146,6 +198,14 @@ unsigned long eval_inst(unsigned long inst_address){
         return sizeof(Inst);
     case INSTRUCTION_DIVF:
         vm.stack[vm.stack_size - 2].as_float64 = vm.stack[vm.stack_size - 2].as_float64 / vm.stack[vm.stack_size - 1].as_float64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_SMALLERF:
+        vm.stack[vm.stack_size - 2].as_uint64 = (vm.stack[vm.stack_size - 2].as_float64 < vm.stack[vm.stack_size - 1].as_float64);
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_BIGGERF:
+        vm.stack[vm.stack_size - 2].as_uint64 = (vm.stack[vm.stack_size - 2].as_float64 > vm.stack[vm.stack_size - 1].as_float64);
         vm.stack_size -= 1;
         return sizeof(Inst);
 
@@ -170,9 +230,9 @@ int main(int argc, char** argv){
 	load_program(argv[1]);
 
     for(
-        unsigned long i = 0;
-        i < vm.internal_memory_size;
-        i += eval_inst(i)
+        vm.ip = 0;
+        vm.ip < vm.internal_memory_size;
+        vm.ip += eval_inst(vm.ip)
     );
 
 

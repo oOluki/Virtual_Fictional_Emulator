@@ -17,6 +17,9 @@ unsigned long print_inst(const Program program, unsigned long inst_address){
     case INSTRUCTION_GSP:
         printf("gsp;\n");
         return sizeof(Inst);
+    case INSTRUCTION_IP:
+        printf("ip;\n");
+        return sizeof(Inst);
 
     case INSTRUCTION_PUSH:{
         const Var operand = *(Var*)(program.data + inst_address + sizeof(Inst));
@@ -39,6 +42,23 @@ unsigned long print_inst(const Program program, unsigned long inst_address){
         printf("set;\n");
         return sizeof(Inst);
     
+    case INSTRUCTION_NOT:
+        printf("not;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_EQUAL:
+        printf("eq;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_JMP:
+        printf("jmp;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_JMP_IF:
+        printf("jmpf;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_JMP_IFNOT:
+        printf("jmpnf;\n");
+        return sizeof(Inst);
+
+    
     case INSTRUCTION_PLUSI:
         printf("plusi;\n");
         return sizeof(Inst);
@@ -50,6 +70,12 @@ unsigned long print_inst(const Program program, unsigned long inst_address){
         return sizeof(Inst);
     case INSTRUCTION_DIVI:
         printf("divi;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_SMALLERI:
+        printf("smalleri;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_BIGGERI:
+        printf("biggeri;\n");
         return sizeof(Inst);
     
     case INSTRUCTION_PLUSU:
@@ -64,6 +90,12 @@ unsigned long print_inst(const Program program, unsigned long inst_address){
     case INSTRUCTION_DIVU:
         printf("divu;\n");
         return sizeof(Inst);
+    case INSTRUCTION_SMALLERU:
+        printf("smalleru;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_BIGGERU:
+        printf("biggeru;\n");
+        return sizeof(Inst);
 
     case INSTRUCTION_PLUSF:
         printf("plusf;\n");
@@ -76,6 +108,12 @@ unsigned long print_inst(const Program program, unsigned long inst_address){
         return sizeof(Inst);
     case INSTRUCTION_DIVF:
         printf("divf;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_SMALLERF:
+        printf("smallerf;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_BIGGERF:
+        printf("biggerf;\n");
         return sizeof(Inst);
 
     default:
