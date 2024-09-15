@@ -2,57 +2,105 @@
 #include <stdlib.h>
 #include "core.h"
 
+
 typedef struct String{
 	char* c_str;
-	unsigned long size;
+	size_t size;
 } String;
 
+typedef struct S_file_t{
+	String path;
+	String mother_dir;
+	String contents;
+} S_file_t;
+
+
+static inline void print_str(const String str){
+	for(size_t i = 0; i < str.size; i+=1){
+		printf("%c", str.c_str[i]);
+	}
+}
+
+unsigned char data[MAX_COMP_STC_STRM_MEMCAP];
+Stream stream = (Stream){.data = data, .size = 0, .capacity = MAX_COMP_STC_STRM_MEMCAP};
 
 #define MKSTR(INPUT) (String){.c_str = INPUT, .size = (sizeof(INPUT) - 1) / sizeof(char)}
 #define INGORED_CHAR(CHAR) (CHAR == ' ' || CHAR == '\n' || CHAR == '\t')
 
+S_file_t read_file(const String mother_dir, const char* path){
 
-String read_file(const char* path){
-	FILE* file = fopen(path, "r");
+	S_file_t output;
+
+	for(output.path.size = 0; path[output.path.size]; output.path.size+=1){
+		if(path[output.path.size] == '/') output.mother_dir.size = output.path.size + 1;
+	}
+
+	output.path.size += mother_dir.size;
+
+	if(output.path.size * sizeof(char) + stream.size + 1 > stream.capacity){
+		throw_error(INTERNAL_ERROR_INTERNAL, "Maximum Stream Capacity Exceeded While Reading File\n");
+	}
+
+	output.path.c_str = (char*)(stream.data + stream.size);
+
+	for(size_t i = 0; i < mother_dir.size; i+=1){
+		output.path.c_str[i] = mother_dir.c_str[i];
+	}
+
+	for(size_t i = 0; i < output.path.size - mother_dir.size; i+=1){
+		output.path.c_str[i + mother_dir.size] = path[i];
+	}
+
+	output.path.c_str[output.path.size] = '\0';
+
+	output.mother_dir.c_str = output.path.c_str;
+
+	FILE* file = fopen(output.path.c_str, "r");
 
 	if(!file){
-		printf("[ERROR] Invalid File Path '%s'\n", path);
-		exit(ERROR_INVALID_FILE_PATH);
+		throw_error(ERROR_INVALID_FILE_PATH, output.path.c_str);
 	}
 
-	Stream stream = (Stream){.data = (unsigned char*)malloc(1024), .size = 0, .capacity = 1024 / sizeof(char)};
+	stream.size += (output.path.size + 1) * sizeof(char);
 
+	const size_t contents_begin = stream.size;
 
-	for(unsigned long i = 0; (!feof(file)) && (i < 10000); i+=1){
+	for(size_t i = 0; (!feof(file)) && (i < 10000); i += 1){
 		stream.size += sizeof(char) * fread(stream.data + stream.size, sizeof(char), stream.capacity, file);
 		if(stream.size >= stream.capacity - 1){
-			resize_stream(&stream, stream.capacity * 2);
+			throw_error(INTERNAL_ERROR_INTERNAL, "Maximum Stream Capacity Exceeded While Reading File\n");
 		}
 	}
+
+	output.contents.c_str = (char*)(stream.data + contents_begin);
+
+	output.contents.size = stream.size - contents_begin;
+
+	stream.data[stream.size++] = '\0';
 
 	fclose(file);
 
 
-	return (String){.c_str = (char*)stream.data, .size = stream.size};
+	return output;
 }
 
-static inline long find_char(String str, char c, unsigned long off_set){
-	for(unsigned long i = off_set; i < str.size; i+=1){
+static inline long find_char(String str, char c, size_t off_set){
+	for(size_t i = off_set; i < str.size; i+=1){
 		if(str.c_str[i] == c) return i - off_set;
 	}
 
 	return -1;
 }
 
-static inline long find_next_significant_char(String str, unsigned long offset){
-	for(unsigned long i = offset; i < str.size; i+=1){
+static inline long find_next_significant_char(String str, size_t offset){
+	for(size_t i = offset; i < str.size; i+=1){
 		if(!INGORED_CHAR(str.c_str[i])) return i - offset;
 	}
 	return -1;
 }
 
-static inline long find_next_insignificant_char(String str, unsigned long offset){
-	for(unsigned long i = offset; i < str.size; i+=1){
+static inline long find_next_insignificant_char(String str, size_t offset){
+	for(size_t i = offset; i < str.size; i+=1){
 		if(INGORED_CHAR(str.c_str[i])) return i - offset;
 	}
 	return -1;
@@ -63,61 +111,60 @@ static inline int compare_str(String str1, String str2){
 		return 0;
 	}
 
-	for(unsigned long i = 0; i < str1.size; i+=1){
+	for(size_t i = 0; i < str1.size; i+=1){
 		if(str1.c_str[i] != str2.c_str[i]) return 0;
 	}
 	return 1;
 
 }
 
-static inline void print_str(const String str){
-	for(unsigned long i = 0; i < str.size; i+=1){
-		printf("%c", str.c_str[i]);
-	}
-}
-
-unsigned long ul_pow(unsigned long base, unsigned long exponent){
-	unsigned long output = 1;
-	for(unsigned long i = 0; i < exponent; i+=1){
+size_t ul_pow(size_t base, size_t exponent){
+	size_t output = 1;
+	for(size_t i = 0; i < exponent; i+=1){
 		output *= base;
 	}
 	return output;
 }
 
-static inline int get_int(char c){
+static inline int get_int(char c, String context){
 	if(c > '9' || c < '0'){
-		printf("[ERROR] Invalid Digit '%c'\n", c);
-		exit(ERROR_INVALID_SYNTAX);
+		const long i = find_next_insignificant_char(context, 0);
+		if(i > 0){
+			context.c_str[i] = '\0';
+		} else{
+			context.c_str[context.size] = '\0';
+		}
+		throw_error(ERROR_INVALID_SYNTAX, context.c_str);
 	}
 	return c - '0';
 }
 
 static inline Var get_operand(String str){
-	unsigned long aux = 0;
+	size_t aux = 0;
 
-	unsigned long exp_factor = 0;
+	size_t exp_factor = 0;
 	int is_float = 0;
 	int is_negative = str.c_str[0] == '-';
 
-	for(unsigned long i = is_negative; i < str.size; i+=1){
+	for(size_t i = is_negative; i < str.size; i+=1){
 		if(str.c_str[i] == 'f'){
 			if(i != str.size - 1){
-				printf("[ERROR] Invalid Syntex: "); print_str(str); printf("\n");
-				exit(ERROR_INVALID_SYNTAX);
+				str.c_str[str.size] = '\0';
+				throw_error(ERROR_INVALID_OPERAND, str.c_str);
 			}
 			is_float = 1;
 			continue;
 		}
 		if(str.c_str[i] == '.'){
 			if(exp_factor){
-				printf("[ERROR] Invalid Operand "); print_str(str); printf("\n");
-				exit(ERROR_INVALID_OPERAND);
+				str.c_str[str.size] = '\0';
+				throw_error(ERROR_INVALID_OPERAND, str.c_str);
 			}
 			is_float = 1;
 			exp_factor = str.size - i;
 			continue;
 		}
-		aux += (unsigned long)(get_int(str.c_str[i])) * ul_pow(10, str.size - i - 1);
+		aux += (size_t)(get_int(str.c_str[i], str)) * ul_pow(10, str.size - i - 1);
 	}
 	Var output;
 	if(is_float == 1) output.as_float64 = aux / (double)(ul_pow(10, exp_factor));
@@ -129,7 +176,7 @@ static inline Var get_operand(String str){
 
 static inline Var parse_operand(String str){
 	String operand_str;
-	unsigned long i = 0;
+	size_t i = 0;
 	for(; i < str.size && INGORED_CHAR(str.c_str[i]); i+=1);
 	const long eo_op = find_next_insignificant_char(str, i);
 	operand_str.c_str = str.c_str + i;
@@ -138,18 +185,37 @@ static inline Var parse_operand(String str){
 	return get_operand(operand_str);
 }
 
-static inline Exp parse_expression(String str_exp, unsigned long index){
+static inline Exp parse_expression(String str_exp, int id){
 
 	String inst_str;
-
 	{
-		unsigned long i = 0;
+		size_t i = 0;
 
 		for(; i < str_exp.size && INGORED_CHAR(str_exp.c_str[i]); i+=1);
 
 		const long eo_inst = find_next_insignificant_char(str_exp, i);
 		inst_str.c_str = str_exp.c_str + i;
 		inst_str.size = (eo_inst < 0)? str_exp.size - i : eo_inst;
+	}
+
+	if(id){
+		if(compare_str(inst_str, MKSTR("#include"))){
+			const long operand_begin = find_char(str_exp, '"', inst_str.size + (inst_str.c_str - str_exp.c_str));
+			const long operand_size = find_char(str_exp, '"', 1 + operand_begin + inst_str.size + (inst_str.c_str - str_exp.c_str));
+			if(operand_begin < 0 || operand_size < 0){
+				str_exp.c_str[str_exp.size];
+				throw_error(ERROR_INVALID_SYNTAX, str_exp.c_str);
+			}
+			return (Exp){
+				.num_of_operands = 2,
+				.instruction = INTERNAL_INSTRUCTION_INCLUDE,
+				.operand = (Var){.as_ptr = str_exp.c_str + operand_begin + inst_str.size + (inst_str.c_str - str_exp.c_str) + 1},
+				.operand_aux = (Var){.as_uint64 = operand_size}
+			};
+		}
+		inst_str.c_str[inst_str.size] = '\0';
+		throw_error(ERROR_UNKOWN_INSTRUCTION, inst_str.c_str);
+		return (Exp){};
 	}
 
 	if(compare_str(inst_str, MKSTR("halt")))
@@ -227,45 +293,62 @@ static inline Exp parse_expression(String str_exp, unsigned long index){
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_BIGGERF};
 	
 	
-
-	printf("[ERROR] Unknown Instruction '"); print_str(inst_str); printf("'\n");
-	exit(ERROR_UNKOWN_INSTRUCTION);
-	
+	inst_str.c_str[inst_str.size] = '\0';
+	throw_error(ERROR_UNKOWN_INSTRUCTION, inst_str.c_str);
+	return (Exp){};	
 }
 
-Program parse(String file){
+void parse(Program* program, S_file_t _file){
 
-	unsigned long last_expr_index = 0;
+	size_t last_expr_index = 0;
 
-	Program program = (Stream){.data = malloc(1024 * sizeof(Exp)), .size = 0, .capacity = 1024};
+	const String file = _file.contents;
 
-	for(unsigned long i = 0; i < file.size; i += 1){
+	for(size_t i = 0; i < file.size; i += 1){
+		if(file.c_str[i] == '#'){
+			const long exp_size = find_char(file, '\n', i);
+			const String exp_str = (String){.c_str = file.c_str + i, .size = (exp_size < 0)? file.size - i : exp_size};
+			Exp macro_expr = parse_expression(exp_str, 1);
+			switch (macro_expr.instruction)
+			{
+			case INTERNAL_INSTRUCTION_INCLUDE:{
+				const char c = ((const char*)(macro_expr.operand.as_ptr))[macro_expr.operand_aux.as_uint64];
+				((char*)(macro_expr.operand.as_ptr))[macro_expr.operand_aux.as_uint64] = '\0';
+				S_file_t __file = read_file(_file.mother_dir, (const char*)macro_expr.operand.as_ptr);
+				parse(program, __file);
+				((char*)(macro_expr.operand.as_ptr))[macro_expr.operand_aux.as_uint64] = c;
+			} break;
+			
+			default:
+				break;
+			}
+			last_expr_index = exp_size + i;
+			i = last_expr_index - 1;
+			continue;
+		}
 		if(file.c_str[i] == ';'){
-			const unsigned long expr_str_size = i - last_expr_index;
-			Exp expr = parse_expression((String){.c_str = file.c_str + last_expr_index, .size = expr_str_size}, i);
-			((Exp*)program.data)[program.size++] = expr;
-			if(program.size >= program.capacity){
-				printf("[ERROR] Program Size Overflow, Maximum Program Size Is %lu\n", (unsigned long)1024);
-				exit(ERROR_PROGRAM_SIZE_OVERFLOW);
+			const size_t expr_str_size = i - last_expr_index;
+			((Exp*)(program->data))[program->size++] = parse_expression(
+				(String){.c_str = file.c_str + last_expr_index, .size = expr_str_size}, 0
+			);
+			
+			if(program->size >= program->capacity){
+				throw_error(ERROR_PROGRAM_SIZE_OVERFLOW, "");
 			}
 
 			last_expr_index = i + 1;
 		}
 	}
-
-	free(file.c_str);
-	return program;
 }
 
 void write_program(const Program program, const char* output_path){
 	FILE* file = fopen(output_path, "wb");
 
 	if(!file){
-		printf("[ERROR] Invalid File Path '%s'\n", output_path);
-		exit(ERROR_INVALID_FILE_PATH);
+		throw_error(ERROR_INVALID_FILE_PATH, output_path);
 	}
 
-	for(unsigned long i = 0; i < program.size; i+=1){
+	for(size_t i = 0; i < program.size; i+=1){
 		const Exp expression = ((Exp*)program.data)[i];
 		fwrite(&expression.instruction, sizeof(Inst), 1, file);
 		if(expression.num_of_operands){
@@ -281,16 +364,20 @@ void write_program(const Program program, const char* output_path){
 int main(int argc, char** argv){
 
 	if(argc < 2){
-		printf("[HELP] Usage: ./fictiler <path_to_executable>\n");
+		printf("[HELP] Usage: ./fictiler <path_to_input_file> <optional: path_to_output_executable>\n");
 		printf("[ERROR] Expected At Least One Argument, Got NONE Instead\n");
 		return ERROR_INVALID_USAGE;
 	}
 
-	String file = read_file(argv[1]);
+	unsigned char data[PROGRAM_CAP];
 
-	Program program = parse(file);
+	Program program = (Program){.data = data, .size = 0, .capacity = PROGRAM_CAP / sizeof(Exp)};
 
-	write_program(program, "out.virtual");
+	S_file_t file = read_file((String){}, argv[1]);
+
+	parse(&program, file);
+
+	write_program(program, (argc == 3)? argv[2] : "out.virtual");
 
 	return 0;
 }

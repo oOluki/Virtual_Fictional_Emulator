@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5.0)
-project(VFE VERSION 0.1.0 LANGUAGES C)
+project(VFE VERSION 0.2.0 LANGUAGES C)
 
 add_executable(fictiler compiler.c)
 

@@ -26,26 +26,26 @@ INTERNAL_ERROR_COUNT
 
 typedef struct Stream{
     unsigned char* data;
-    unsigned long size;
-    unsigned long capacity;
+    size_t         size;
+    size_t         capacity;
 } Stream;
 
-void resize_stream(Stream* stream, unsigned long new_capacity){
+void resize_stream(Stream* stream, size_t new_capacity){
 
     unsigned char* old_data = stream->data;
     stream->data = malloc(new_capacity);
 
-    const unsigned long range = (stream->size < new_capacity)? stream->size : new_capacity;
+    const size_t range = (stream->size < new_capacity)? stream->size : new_capacity;
 
-    for(unsigned long i = 0; i < range; i+=1){
+    for(size_t i = 0; i < range; i+=1){
         stream->data[i] = old_data[i];
     }
 
     stream->capacity = new_capacity;
 }
 
-void stream_to_stream(Stream* stream, unsigned char* data, unsigned long size){
-    for(unsigned long i = 0; i < size; i+=1){
+void stream_to_stream(Stream* stream, unsigned char* data, size_t size){
+    for(size_t i = 0; i < size; i+=1){
         if(stream->size >= stream->capacity) resize_stream(stream, stream->capacity * 2);
         stream->data[stream->size++] = data[i];
     }
@@ -104,6 +104,9 @@ INSTRUCTION_DIVF,
 INSTRUCTION_SMALLERF,
 INSTRUCTION_BIGGERF,
 
+INTERNAL_INSTRUCTION_INCLUDE,
+INTERNAL_INSTRUCTION_DEFINE,
+
 // for internal counting purposes
 INTERNAL_INSTRUCTION_COUNT
 } Inst;
@@ -121,11 +124,51 @@ typedef struct Expression{
     int num_of_operands;
 	Inst instruction;
     Var operand;
+    Var operand_aux;
 } Exp;
 
 typedef Stream Program;
 
 #define SIZEOF_CHUNK sizeof(unsigned char)
+#define PROGRAM_CAP (1024 * sizeof(Exp))
+#define MAX_COMP_STC_STRM_MEMCAP 10240
+
+void throw_error(int error, const char* aux){
+    switch (error)
+    {
+    case ERROR_INVALID_FILE_PATH:
+        printf("[ERROR] Invalid File Path: '%s'\n", aux);
+        break;
+    case ERROR_INVALID_USAGE:
+        printf("[ERROR] Invalid Usage\n%s\n", aux);
+        break;
+    case ERROR_UNKOWN_INSTRUCTION:
+        printf("[ERROR] Unknown Instruction: '%s'\n", aux);
+        break;
+    case ERROR_INVALID_OPERAND:
+        printf("[ERROR] Invalid Operand: '%s'\n", aux);
+        break;
+    case ERROR_INVALID_OPERAND_COUNT:
+        printf("[ERROR] Invalid Operand Count\n%s\n", aux);
+        break;
+    case ERROR_INVALID_SYNTAX:
+        printf("[ERROR] Invalid Syntax: '%s'\n", aux);
+        break;
+    case ERROR_PROGRAM_SIZE_OVERFLOW:
+        printf("[ERROR] Program Size Overflow, Maximum Program Size Is %lu\n", PROGRAM_CAP);
+        break;
+    
+    case INTERNAL_ERROR_INTERNAL:
+        printf("[INTERNAL ERROR] %s\n", aux);
+        break;
+    
+    default:
+        printf("[INTERNAL ERROR] Attempt To Throw Invalid Error %i\n", error);
+        exit(INTERNAL_ERROR_INTERNAL);
+        break;
+    }
+    exit(error);
+}
 
 
 #endif //END OF FILE ================
