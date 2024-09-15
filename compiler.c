@@ -84,24 +84,24 @@ S_file_t read_file(const String mother_dir, const char* path){
 	return output;
 }
 
-static inline long find_char(String str, char c, size_t off_set){
+static inline int64_t find_char(String str, char c, size_t off_set){
 	for(size_t i = off_set; i < str.size; i+=1){
-		if(str.c_str[i] == c) return i - off_set;
+		if(str.c_str[i] == c) return (int64_t)(i - off_set);
 	}
 
 	return -1;
 }
 
-static inline long find_next_significant_char(String str, size_t offset){
+static inline int64_t find_next_significant_char(String str, size_t offset){
 	for(size_t i = offset; i < str.size; i+=1){
-		if(!INGORED_CHAR(str.c_str[i])) return i - offset;
+		if(!INGORED_CHAR(str.c_str[i])) return (int64_t)(i - offset);
 	}
 	return -1;
 }
 
-static inline long find_next_insignificant_char(String str, size_t offset){
+static inline int64_t find_next_insignificant_char(String str, size_t offset){
 	for(size_t i = offset; i < str.size; i+=1){
-		if(INGORED_CHAR(str.c_str[i])) return i - offset;
+		if(INGORED_CHAR(str.c_str[i])) return (int64_t)(i - offset);
 	}
 	return -1;
 }
@@ -128,7 +128,7 @@ size_t ul_pow(size_t base, size_t exponent){
 
 static inline int get_int(char c, String context){
 	if(c > '9' || c < '0'){
-		const long i = find_next_insignificant_char(context, 0);
+		const int64_t i = find_next_insignificant_char(context, 0);
 		if(i > 0){
 			context.c_str[i] = '\0';
 		} else{
@@ -178,7 +178,7 @@ static inline Var parse_operand(String str){
 	String operand_str;
 	size_t i = 0;
 	for(; i < str.size && INGORED_CHAR(str.c_str[i]); i+=1);
-	const long eo_op = find_next_insignificant_char(str, i);
+	const int64_t eo_op = find_next_insignificant_char(str, i);
 	operand_str.c_str = str.c_str + i;
 	operand_str.size = (eo_op < 0)? str.size - i : eo_op;
 	if(operand_str.c_str[operand_str.size - 1] == ';') operand_str.size -= 1;
@@ -193,15 +193,15 @@ static inline Exp parse_expression(String str_exp, int id){
 
 		for(; i < str_exp.size && INGORED_CHAR(str_exp.c_str[i]); i+=1);
 
-		const long eo_inst = find_next_insignificant_char(str_exp, i);
+		const int64_t eo_inst = find_next_insignificant_char(str_exp, i);
 		inst_str.c_str = str_exp.c_str + i;
 		inst_str.size = (eo_inst < 0)? str_exp.size - i : eo_inst;
 	}
 
 	if(id){
 		if(compare_str(inst_str, MKSTR("#include"))){
-			const long operand_begin = find_char(str_exp, '"', inst_str.size + (inst_str.c_str - str_exp.c_str));
-			const long operand_size = find_char(str_exp, '"', 1 + operand_begin + inst_str.size + (inst_str.c_str - str_exp.c_str));
+			const int64_t operand_begin = find_char(str_exp, '"', inst_str.size + (inst_str.c_str - str_exp.c_str));
+			const int64_t operand_size = find_char(str_exp, '"', 1 + operand_begin + inst_str.size + (inst_str.c_str - str_exp.c_str));
 			if(operand_begin < 0 || operand_size < 0){
 				str_exp.c_str[str_exp.size];
 				throw_error(ERROR_INVALID_SYNTAX, str_exp.c_str);
@@ -306,7 +306,7 @@ void parse(Program* program, S_file_t _file){
 
 	for(size_t i = 0; i < file.size; i += 1){
 		if(file.c_str[i] == '#'){
-			const long exp_size = find_char(file, '\n', i);
+			const int64_t exp_size = find_char(file, '\n', i);
 			const String exp_str = (String){.c_str = file.c_str + i, .size = (exp_size < 0)? file.size - i : exp_size};
 			Exp macro_expr = parse_expression(exp_str, 1);
 			switch (macro_expr.instruction)

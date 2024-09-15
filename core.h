@@ -157,7 +157,7 @@ void throw_error(int error, const char* aux){
         printf("[ERROR] Invalid Syntax: '%s'\n", aux);
         break;
     case ERROR_PROGRAM_SIZE_OVERFLOW:
-        printf("[ERROR] Program Size Overflow, Maximum Program Size Is %lu\n", PROGRAM_CAP);
+        printf("[ERROR] Program Size Overflow, Maximum Program Size Is %zu\n", PROGRAM_CAP);
         break;
     
     case INTERNAL_ERROR_INTERNAL:
