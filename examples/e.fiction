@@ -1,0 +1,118 @@
+push 1.0f;
+
+push 0;
+read;
+dup;
+dup;
+
+push 1.0f;
+plusf;
+mulf;
+divf;
+
+push 0;
+read;
+push 1.0f;
+plusf;
+push 0;
+gsp;
+push 1;
+minusu;
+set;
+pop;
+
+dup;
+push 0;
+read;
+dup;
+dup;
+
+push 1.0f;
+plusf;
+mulf;
+divf;
+mulf;
+
+push 0;
+read;
+push 1.0f;
+plusf;
+push 0;
+gsp;
+push 1;
+minusu;
+set;
+pop;
+
+dup;
+push 0;
+read;
+dup;
+dup;
+
+push 1.0f;
+plusf;
+mulf;
+divf;
+mulf;
+
+push 0;
+read;
+push 1.0f;
+plusf;
+push 0;
+gsp;
+push 1;
+minusu;
+set;
+pop;
+
+dup;
+push 0;
+read;
+dup;
+dup;
+
+push 1.0f;
+plusf;
+mulf;
+divf;
+mulf;
+
+push 0;
+read;
+push 1.0f;
+plusf;
+push 0;
+gsp;
+push 1;
+minusu;
+set;
+pop;
+
+dup;
+push 0;
+read;
+dup;
+dup;
+
+push 1.0f;
+plusf;
+mulf;
+divf;
+mulf;
+
+
+push 2.0f;
+plusf;
+plusf;
+plusf;
+plusf;
+plusf;
+
+
+
+dump;
+halt;
+
+

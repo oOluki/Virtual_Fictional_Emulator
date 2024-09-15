@@ -156,6 +156,8 @@ static inline Exp parse_expression(String str_exp, unsigned long index){
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_HALT};
 	if(compare_str(inst_str, MKSTR("dump")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_DUMP_STACK};
+	if(compare_str(inst_str, MKSTR("gsp")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_GSP};
 
 	if(compare_str(inst_str, MKSTR("push"))){
 		const String operand_str = (String){.c_str = inst_str.c_str + inst_str.size, .size = str_exp.size - inst_str.size};
@@ -171,6 +173,34 @@ static inline Exp parse_expression(String str_exp, unsigned long index){
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_READ};
 	if(compare_str(inst_str, MKSTR("set")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_SET};
+	
+	if(compare_str(inst_str, MKSTR("plusi")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_PLUSI};
+	if (compare_str(inst_str, MKSTR("minusi")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_MINUSI};
+	if(compare_str(inst_str, MKSTR("muli")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_MULI};
+	if(compare_str(inst_str, MKSTR("divi")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_DIVI};
+	
+	if(compare_str(inst_str, MKSTR("plusu")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_PLUSU};
+	if (compare_str(inst_str, MKSTR("minusu")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_MINUSU};
+	if(compare_str(inst_str, MKSTR("mulu")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_MULU};
+	if(compare_str(inst_str, MKSTR("divu")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_DIVU};
+
+	if(compare_str(inst_str, MKSTR("plusf")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_PLUSF};
+	if (compare_str(inst_str, MKSTR("minusf")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_MINUSF};
+	if(compare_str(inst_str, MKSTR("mulf")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_MULF};
+	if(compare_str(inst_str, MKSTR("divf")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_DIVF};
+	
 	
 
 	printf("[ERROR] Unknown Instruction '"); print_str(inst_str); printf("'\n");

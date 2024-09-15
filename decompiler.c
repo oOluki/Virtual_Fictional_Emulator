@@ -14,6 +14,10 @@ unsigned long print_inst(const Program program, unsigned long inst_address){
         printf("dump;\n");
         sizeof(Inst);
         return sizeof(Inst);
+    case INSTRUCTION_GSP:
+        printf("gsp;\n");
+        return sizeof(Inst);
+
     case INSTRUCTION_PUSH:{
         const Var operand = *(Var*)(program.data + inst_address + sizeof(Inst));
         printf("push (f: %f; li: %li; lu: %lu; ptr: %p);\n",
@@ -28,10 +32,52 @@ unsigned long print_inst(const Program program, unsigned long inst_address){
     case INSTRUCTION_DUP:
         printf("dup;\n");
         return sizeof(Inst);
+    case INSTRUCTION_READ:
+        printf("read;\n");
+        return sizeof(Inst);
     case INSTRUCTION_SET:
         printf("set;\n");
         return sizeof(Inst);
     
+    case INSTRUCTION_PLUSI:
+        printf("plusi;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_MINUSI:
+        printf("minusi;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_MULI:
+        printf("muli;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_DIVI:
+        printf("divi;\n");
+        return sizeof(Inst);
+    
+    case INSTRUCTION_PLUSU:
+        printf("plusu;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_MINUSU:
+        printf("minusu;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_MULU:
+        printf("mulu;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_DIVU:
+        printf("divu;\n");
+        return sizeof(Inst);
+
+    case INSTRUCTION_PLUSF:
+        printf("plusf;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_MINUSF:
+        printf("minusf;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_MULF:
+        printf("mulf;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_DIVF:
+        printf("divf;\n");
+        return sizeof(Inst);
+
     default:
         printf("[ERROR] Unkown Instruction %u\n", inst);
         exit(ERROR_UNKOWN_INSTRUCTION);

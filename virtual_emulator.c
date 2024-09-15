@@ -18,7 +18,7 @@ unsigned long internal_memory_size;
 
 Var* stack;
 unsigned long stack_size;
-} virtual_machine;
+} vm;
 
 
 void load_program(const char* path){
@@ -40,61 +40,115 @@ void load_program(const char* path){
 
     fclose(file);
 
-    virtual_machine.internal_memory = (unsigned char*)malloc(stream.size + STACK_CAP);
-    virtual_machine.internal_memory_size = stream.size;
+    vm.internal_memory = (unsigned char*)malloc(stream.size + STACK_CAP);
+    vm.internal_memory_size = stream.size;
     
-    virtual_machine.stack = (Var*)(virtual_machine.internal_memory + stream.size);
-    virtual_machine.stack_size = 0;
+    vm.stack = (Var*)(vm.internal_memory + stream.size);
+    vm.stack_size = 0;
 
-    for(unsigned long i = 0; i < virtual_machine.internal_memory_size; i += 1){
-        virtual_machine.internal_memory[i] = stream.data[i];
+    for(unsigned long i = 0; i < vm.internal_memory_size; i += 1){
+        vm.internal_memory[i] = stream.data[i];
     }
 
     free(stream.data);
 }
 
-// returns the number of bytes taken by the instruction, so to be convinient to jump to next inrtuction
+// returns the number of bytes taken by the instruction, so to be convinient to jump to next instruction
 unsigned long eval_inst(unsigned long inst_address){
-    const Inst inst = *(Inst*)(virtual_machine.internal_memory + inst_address);
+    const Inst inst = *(Inst*)(vm.internal_memory + inst_address);
     switch (inst)
     {
     case INSTRUCTION_HALT:
         exit(0);
         return sizeof(Inst);
     case INSTRUCTION_DUMP_STACK:
-        for(unsigned long i = 0; i < virtual_machine.stack_size; i+=1){
-            const Var var = virtual_machine.stack[i];
+        for(unsigned long i = 0; i < vm.stack_size; i+=1){
+            const Var var = vm.stack[i];
             printf(
                 "%lu-- i: %li, u: %lu, f: %f, ptr: %p\n",
                 i, var.as_int64, var.as_uint64, var.as_float64, var.as_ptr
             );
         }
         return sizeof(Inst);
+    case INSTRUCTION_GSP:
+        vm.stack[vm.stack_size - 1].as_uint64 = (vm.stack_size++) - 1;
+        return sizeof(Inst);
 
     case INSTRUCTION_PUSH:
-        virtual_machine.stack[virtual_machine.stack_size++] =
-        *(Var*)(virtual_machine.internal_memory + inst_address + sizeof(Inst));
+        vm.stack[vm.stack_size++] =
+        *(Var*)(vm.internal_memory + inst_address + sizeof(Inst));
         return sizeof(Inst) + sizeof(Var);
     case INSTRUCTION_POP:
-        virtual_machine.stack_size -= 1;
+        vm.stack_size -= 1;
         return sizeof(Inst);
     case INSTRUCTION_CLEAN:
-        virtual_machine.stack_size = 0;
+        vm.stack_size = 0;
         return sizeof(Inst);
     case INSTRUCTION_DUP:
-        virtual_machine.stack[virtual_machine.stack_size] = virtual_machine.stack[virtual_machine.stack_size - 1];
-        virtual_machine.stack_size += 1;
+        vm.stack[vm.stack_size] = vm.stack[vm.stack_size - 1];
+        vm.stack_size += 1;
         return sizeof(Inst);
     case INSTRUCTION_READ:{
-        const unsigned long i = virtual_machine.stack[virtual_machine.stack_size - 1].as_uint64;
-        virtual_machine.stack[virtual_machine.stack_size - 1] = virtual_machine.stack[i];
+        const unsigned long i = vm.stack[vm.stack_size - 1].as_uint64;
+        vm.stack[vm.stack_size - 1] = vm.stack[i];
     } return sizeof(Inst);
     case INSTRUCTION_SET:
-        virtual_machine.stack[virtual_machine.stack[virtual_machine.stack_size - 2].as_uint64] =
-        virtual_machine.stack[virtual_machine.stack[virtual_machine.stack_size - 1].as_uint64];
-        virtual_machine.stack_size -= 2;
+        vm.stack[vm.stack[vm.stack_size - 2].as_uint64] =
+        vm.stack[vm.stack[vm.stack_size - 1].as_uint64];
+        vm.stack_size -= 2;
         return sizeof(Inst);
-    
+
+    case INSTRUCTION_PLUSI:
+        vm.stack[vm.stack_size - 2].as_int64 = vm.stack[vm.stack_size - 1].as_int64 + vm.stack[vm.stack_size - 2].as_int64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_MINUSI:
+        vm.stack[vm.stack_size - 2].as_int64 = vm.stack[vm.stack_size - 2].as_int64 - vm.stack[vm.stack_size - 1].as_int64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_MULI:
+        vm.stack[vm.stack_size - 2].as_int64 = vm.stack[vm.stack_size - 2].as_int64 * vm.stack[vm.stack_size - 1].as_int64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_DIVI:
+        vm.stack[vm.stack_size - 2].as_int64 = vm.stack[vm.stack_size - 2].as_int64 / vm.stack[vm.stack_size - 1].as_int64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+
+    case INSTRUCTION_PLUSU:
+        vm.stack[vm.stack_size - 2].as_uint64 = vm.stack[vm.stack_size - 1].as_uint64 + vm.stack[vm.stack_size - 2].as_uint64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_MINUSU:
+        vm.stack[vm.stack_size - 2].as_uint64 = vm.stack[vm.stack_size - 2].as_uint64 - vm.stack[vm.stack_size - 1].as_uint64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_MULU:
+        vm.stack[vm.stack_size - 2].as_uint64 = vm.stack[vm.stack_size - 2].as_uint64 * vm.stack[vm.stack_size - 1].as_uint64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_DIVU:
+        vm.stack[vm.stack_size - 2].as_uint64 = vm.stack[vm.stack_size - 2].as_uint64 / vm.stack[vm.stack_size - 1].as_uint64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+
+    case INSTRUCTION_PLUSF:
+        vm.stack[vm.stack_size - 2].as_float64 = vm.stack[vm.stack_size - 1].as_float64 + vm.stack[vm.stack_size - 2].as_float64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_MINUSF:
+        vm.stack[vm.stack_size - 2].as_float64 = vm.stack[vm.stack_size - 2].as_float64 - vm.stack[vm.stack_size - 1].as_float64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_MULF:
+        vm.stack[vm.stack_size - 2].as_float64 = vm.stack[vm.stack_size - 2].as_float64 * vm.stack[vm.stack_size - 1].as_float64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_DIVF:
+        vm.stack[vm.stack_size - 2].as_float64 = vm.stack[vm.stack_size - 2].as_float64 / vm.stack[vm.stack_size - 1].as_float64;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+
     default:
         printf("[ERROR] Unkown Instruction %u\n", (unsigned int)inst);
         exit(ERROR_UNKOWN_INSTRUCTION);
@@ -117,7 +171,7 @@ int main(int argc, char** argv){
 
     for(
         unsigned long i = 0;
-        i < virtual_machine.internal_memory_size;
+        i < vm.internal_memory_size;
         i += eval_inst(i)
     );
 
