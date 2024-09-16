@@ -226,6 +226,27 @@ void print_help_message(){
     );
 }
 
+static inline int ipow(int base, int exp){
+    int output = 1;
+    for(int i = 0; i < exp; i += 1){
+        output *= base;
+    }
+    return output;
+}
+
+int get_int_fromstr(char* str){
+    int output = 0;
+    int str_size = 0;
+    for(; str[str_size] && str[str_size] != ' ' && str[str_size] != '\n'; str_size += 1);
+
+    for(int i = 0; i < str_size; i+=1){
+        int digit = get_int(str[i]);
+        if(digit < 0) return -1;
+        output += digit * ipow(10, str_size - i - 1);
+    }
+
+    return output;
+}
 
 int main(int argc, char** argv){
 
@@ -269,8 +290,9 @@ int main(int argc, char** argv){
             "'e' to exit\n"
             "'s' to display stack; "
             "'i' to display instruction; "
-            "'n' to evaluate the next instruction\n"
+            "'n<count>' to evaluate the next <count> instructions. if <count> = -1: evaluate to the end of the program\n"
         );
+        size_t inst_count = 0;
         do{
             // getting input
             char c = fgetc(stdin);
@@ -290,7 +312,7 @@ int main(int argc, char** argv){
                 }
                 break;
             case 'i':
-                printf("inst:\n");
+                printf("inst %zu:\n\t", inst_count);
                 print_inst(
                     (Program){
                         .data = vm.internal_memory,
@@ -300,7 +322,22 @@ int main(int argc, char** argv){
                 );
                 break;
             case 'n':
-                stride = 1;
+                char N_str[11];
+                N_str[10] = '\0';
+                fgets(N_str, 10, stdin);
+                if(N_str[0] == '\n'){ // case of a stand alone 'n'
+                    stride = 1;
+                    break;
+                } else if(N_str[0] == '-'){
+                    stride = (size_t)(-1);
+                    break;
+                }
+                const int N = get_int_fromstr(N_str);
+                if(N < 0){
+                    printf("[DEBUG] ERROR: invalid input '%s'\n", N_str);
+                    break;
+                }
+                stride = N;
                 break;
             case 'e':
                 return 0;
@@ -309,7 +346,9 @@ int main(int argc, char** argv){
                 printf("[DEBUG] ERROR: invalid input '%c'\n", c);
                 break;
             }
-            for(size_t i = 0; i++ < stride; vm.ip += eval_inst(vm.ip));
+            for(size_t i = 0; i++ < stride && vm.ip < vm.internal_memory_size; vm.ip += eval_inst(vm.ip)){
+                inst_count += 1;
+            }
         } while(vm.ip < vm.internal_memory_size);
     }
     else {
