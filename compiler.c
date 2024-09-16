@@ -2,17 +2,102 @@
 #include <stdlib.h>
 #include "core.h"
 
+
 static inline void print_str(const String str){
 	for(size_t i = 0; i < str.size; i+=1){
 		printf("%c", str.c_str[i]);
 	}
 }
 
+
 Stream stream;
 Label labels[LABEL_CAP];
+size_t label_count;
 
 #define MKSTR(INPUT) (String){.c_str = INPUT, .size = (sizeof(INPUT) - 1) / sizeof(char)}
 #define INGORED_CHAR(CHAR) (CHAR == ' ' || CHAR == '\n' || CHAR == '\t')
+
+static inline int64_t find_char(String str, char c, size_t off_set){
+	for(size_t i = off_set; i < str.size; i+=1){
+		if(str.c_str[i] == c) return (int64_t)(i - off_set);
+	}
+
+	return -1;
+}
+
+static inline int64_t find_next_significant_char(String str, size_t offset){
+	for(size_t i = offset; i < str.size; i+=1){
+		if(str.c_str[i] == COMMENT_SYM){
+			const int64_t nxt = find_char(str, '\n', i);
+			if(nxt < 0) return -1;
+			i += nxt;
+			continue;
+		}
+		if(!INGORED_CHAR(str.c_str[i])) return (int64_t)(i - offset);
+	}
+	return -1;
+}
+
+static inline int64_t find_next_insignificant_char(String str, size_t offset){
+	for(size_t i = offset; i < str.size; i+=1){
+		if(str.c_str[i] == COMMENT_SYM) return (int64_t)(i - offset);
+		if(INGORED_CHAR(str.c_str[i])) return (int64_t)(i - offset);
+	}
+	return -1;
+}
+
+static inline int compare_str(String str1, String str2){
+	if(str1.size != str2.size){
+		return 0;
+	}
+
+	for(size_t i = 0; i < str1.size; i+=1){
+		if(str1.c_str[i] != str2.c_str[i]) return 0;
+	}
+	return 1;
+
+}
+
+static inline void add_label(Label label){
+	for(size_t i = 0; i < label_count; i += 1){
+		if(compare_str(labels[i].str, label.str)){
+			const char c = label.str.c_str[label.str.size];
+			label.str.c_str[label.str.size]= '\0';
+			printf("[WANRING] Redefinition Of '%s' Label\n", label.str.c_str);
+			label.str.c_str[label.str.size] = c;
+			labels[i].def = label.def;
+			return ;
+		}
+	}
+	if(label_count >= LABEL_CAP) throw_error(INTERNAL_ERROR_INTERNAL, "Label Capacity Overflow\n");
+
+	labels[label_count++] = label;
+}
+
+static inline String resolve_label(String str, int required){
+	for(size_t i = 0; i < label_count; i += 1){
+		if(compare_str(str, labels[i].str)){
+			return labels[i].def;
+		}
+	}
+	if(required){
+		str.c_str[str.size] = '\0';
+		throw_error(ERROR_UNRESOLVED_SYMBOL, str.c_str);
+	}
+	return (String){};
+}
+
+static inline String get_next_token(String string, size_t pos){
+
+	int64_t begin = find_next_significant_char(string, pos);
+	if(begin < 0){
+		return (String){};
+	}
+	int64_t size = find_next_insignificant_char(string, pos + begin);
+	if(size < 0) size = string.size - begin - pos;
+
+	return (String){.c_str = string.c_str + begin + pos, .size = size};
+}
 
 S_file_t read_file(const String mother_dir, const char* path){
 
@@ -71,50 +156,6 @@ S_file_t read_file(const String mother_dir, const char* path){
 	return output;
 }
 
-static inline int64_t find_char(String str, char c, size_t off_set){
-	for(size_t i = off_set; i < str.size; i+=1){
-		if(str.c_str[i] == c) return (int64_t)(i - off_set);
-	}
-
-	return -1;
-}
-
-static inline int64_t find_next_significant_char(String str, size_t offset){
-	for(size_t i = offset; i < str.size; i+=1){
-		if(!INGORED_CHAR(str.c_str[i])) return (int64_t)(i - offset);
-	}
-	return -1;
-}
-
-static inline int64_t find_next_insignificant_char(String str, size_t offset){
-	for(size_t i = offset; i < str.size; i+=1){
-		if(INGORED_CHAR(str.c_str[i])) return (int64_t)(i - offset);
-	}
-	return -1;
-}
-
-static inline int compare_str(String str1, String str2){
-	if(str1.size != str2.size){
-		return 0;
-	}
-
-	for(size_t i = 0; i < str1.size; i+=1){
-		if(str1.c_str[i] != str2.c_str[i]) return 0;
-	}
-	return 1;
-
-}
-
-static inline String get_next_token(String string, size_t pos){
-	int64_t begin = find_next_significant_char(string, pos);
-	if(begin < 0){
-		return (String){};
-	}
-	int64_t size = find_next_insignificant_char(string, pos + begin);
-	if(size < 0) size = string.size - begin - pos;
-	return (String){.c_str = string.c_str + begin + pos, .size = size};
-}
-
 uint64_t u64_pow(uint64_t base, uint64_t exponent){
 	uint64_t output = 1;
 	for(uint64_t i = 0; i < exponent; i+=1){
@@ -123,17 +164,33 @@ uint64_t u64_pow(uint64_t base, uint64_t exponent){
 	return output;
 }
 
-static inline int get_int(char c, String context){
-	if(c > '9' || c < '0'){
-		const int64_t i = find_next_insignificant_char(context, 0);
-		if(i > 0){
-			context.c_str[i] = '\0';
-		} else{
-			context.c_str[context.size] = '\0';
-		}
-		throw_error(ERROR_INVALID_SYNTAX, context.c_str);
+static inline int get_int(char c){
+	switch (c)
+	{
+	case '0':
+		return 0;
+	case '1':
+		return 1;
+	case '2':
+		return 2;
+	case '3':
+		return 3;
+	case '4':
+		return 4;
+	case '5':
+		return 5;
+	case '6':
+		return 6;
+	case '7':
+		return 7;
+	case '8':
+		return 8;
+	case '9':
+		return 9;
+	
+	default:
+		return -1;
 	}
-	return c - '0';
 }
 
 static inline Var get_operand(String str){
@@ -161,7 +218,12 @@ static inline Var get_operand(String str){
 			exp_factor = str.size - i;
 			continue;
 		}
-		aux += (uint64_t)(get_int(str.c_str[i], str)) * u64_pow(10, (uint64_t)(str.size - i - 1));
+		const int i_n_t_ = get_int(str.c_str[i]);
+		if(i_n_t_ < 0){
+			str.c_str[str.size] = '\0';
+			throw_error(ERROR_INVALID_SYNTAX, str.c_str);
+		}
+		aux += (uint64_t)(i_n_t_) * u64_pow(10, (uint64_t)(str.size - i - 1));
 	}
 	Var output;
 	if(is_float == 1) output.as_float64 = (double)(aux / (double)(u64_pow(10, exp_factor)));
@@ -172,7 +234,10 @@ static inline Var get_operand(String str){
 }
 
 static inline InternalInst parse_macro(String str_exp){
+
 	const String inst_str = get_next_token(str_exp, 0);
+
+	if(inst_str.c_str == NULL) return (InternalInst){};
 
 	if(compare_str(inst_str, MKSTR("#include"))){
 		const size_t offset = inst_str.size + (inst_str.c_str - str_exp.c_str);
@@ -185,14 +250,32 @@ static inline InternalInst parse_macro(String str_exp){
 		const String path__ = (String){.c_str = str_exp.c_str + operand_begin + offset + 1, .size = operand_size};
 		return (InternalInst){.inst = INTERNAL_INSTRUCTION_INCLUDE, .str = path__};
 	}
+	if(compare_str(inst_str, MKSTR("#define"))){
+		const String tkn1 = get_next_token(str_exp, inst_str.size + (inst_str.c_str - str_exp.c_str));
+		if(tkn1.c_str == NULL){
+			str_exp.c_str[str_exp.size] = '\0';
+			throw_error(ERROR_INVALID_SYNTAX, str_exp.c_str);
+		}
+		const String tkn2 = get_next_token(str_exp, tkn1.size + (tkn1.c_str - str_exp.c_str));
+		add_label((Label){.str = tkn1, .def = tkn2});
+		return (InternalInst){};
+	}
 	inst_str.c_str[inst_str.size] = '\0';
 	throw_error(ERROR_UNKOWN_INSTRUCTION, inst_str.c_str);
 	return (InternalInst){};
 }
 
-static inline Exp parse_expression(String str_exp){
+static inline Exp resolve_inst(String str_exp, int required){
 
 	String inst_str = get_next_token(str_exp, 0);
+
+	if(inst_str.c_str == NULL){
+		if(required){
+			str_exp.c_str[str_exp.size] = '\0';
+			throw_error(ERROR_UNKOWN_INSTRUCTION, str_exp.c_str);
+		}
+		return (Exp){};
+	}
 
 	if(compare_str(inst_str, MKSTR("halt")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_HALT};
@@ -205,7 +288,10 @@ static inline Exp parse_expression(String str_exp){
 
 	if(compare_str(inst_str, MKSTR("push"))){
 		const String operand_str = get_next_token(str_exp, inst_str.size + (inst_str.c_str - str_exp.c_str));
-		return (Exp){.num_of_operands = 1, .instruction = INSTRUCTION_PUSH, .operand = get_operand(operand_str)};
+		if(operand_str.c_str != NULL && (get_int(operand_str.c_str[0]) >= 0 || operand_str.c_str[0] == '-')){
+			return (Exp){.num_of_operands = 1, .instruction = INSTRUCTION_PUSH, .operand = get_operand(operand_str)};
+		}
+		return (Exp){.num_of_operands = 1, .instruction = INSTRUCTION_PUSH};
 	}
 	if(compare_str(inst_str, MKSTR("pop")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_POP};
@@ -268,9 +354,11 @@ static inline Exp parse_expression(String str_exp){
 	if(compare_str(inst_str, MKSTR("biggerf")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_BIGGERF};
 	
-	
-	inst_str.c_str[inst_str.size] = '\0';
-	throw_error(ERROR_UNKOWN_INSTRUCTION, inst_str.c_str);
+
+	if(required){
+		inst_str.c_str[inst_str.size] = '\0';
+		throw_error(ERROR_UNKOWN_INSTRUCTION, inst_str.c_str);
+	}
 	return (Exp){};	
 }
 
@@ -280,33 +368,51 @@ void parse(Program* program, S_file_t _file){
 
 	const String file = _file.contents;
 
-	for(size_t i = 0; i < file.size; i += 1){
+	int operands_expected = 0;
+
+	for(size_t i = 0; i < file.size; ){
 		if(file.c_str[i] == '#'){
 			const int64_t exp_size = find_char(file, '\n', i);
 			const String exp_str = (String){.c_str = file.c_str + i, .size = (exp_size < 0)? file.size - i : exp_size};
 			InternalInst iinst =  parse_macro(exp_str);
-			if(iinst.inst = INTERNAL_INSTRUCTION_INCLUDE){
+
+			if(iinst.inst == INTERNAL_INSTRUCTION_INCLUDE){
 				const char c = iinst.str.c_str[iinst.str.size];
 				iinst.str.c_str[iinst.str.size] = '\0';
 				S_file_t __file = read_file(_file.mother_dir, iinst.str.c_str);
 				parse(program, __file);
 				iinst.str.c_str[iinst.str.size] = c;
 			}
-			last_expr_index = exp_size + i;
-			i = last_expr_index - 1;
+			i += exp_size;
 			continue;
 		}
-		if(file.c_str[i] == ';'){
-			const size_t expr_str_size = i - last_expr_index;
-			((Exp*)(program->data))[program->size++] = parse_expression(
-				(String){.c_str = file.c_str + last_expr_index, .size = expr_str_size}
-			);
-			
-			if(program->size >= program->capacity){
-				throw_error(ERROR_PROGRAM_SIZE_OVERFLOW, "");
+		if(file.c_str[i] == COMMENT_SYM){
+			int64_t skp = find_char(file, '\n', i);
+			if(skp < 0) break;
+			i += skp;
+			continue;
+		}
+		String token = get_next_token(file, i);
+		if(token.c_str == NULL) break;
+		//print_str(token); printf("\n");
+		i = token.size + (token.c_str - file.c_str);
+		if(operands_expected > 0){
+			Var operand;
+			if(token.c_str != NULL && get_int(token.c_str[0]) < 0 && token.c_str[0] != '-'){
+				operand = get_operand(resolve_label(token, 1));
 			}
-
-			last_expr_index = i + 1;
+			else operand = get_operand(token);
+			if(program->size + sizeof(Var) >= PROGRAM_CAP) throw_error(ERROR_PROGRAM_SIZE_OVERFLOW, "");
+			*(Var*)(program->data + program->size) = operand;
+			program->size += sizeof(Var);
+			operands_expected -= 1;
+		} else{
+			Exp expr = resolve_inst(token, 0);
+			if(expr.instruction == 0) expr = resolve_inst(resolve_label(token, 1), 1);
+			operands_expected += expr.num_of_operands;
+			if(program->size + sizeof(Inst) >= PROGRAM_CAP) throw_error(ERROR_PROGRAM_SIZE_OVERFLOW, "");
+			*(Inst*)(program->data + program->size) = expr.instruction;
+			program->size += sizeof(Inst);
 		}
 	}
 }
@@ -318,14 +424,14 @@ void write_program(const Program program, const char* output_path){
 		throw_error(ERROR_INVALID_FILE_PATH, output_path);
 	}
 
-	for(size_t i = 0; i < program.size; i+=1){
-		const Exp expression = ((Exp*)program.data)[i];
-		fwrite(&expression.instruction, sizeof(Inst), 1, file);
-		if(expression.num_of_operands){
-			fwrite(&expression.operand, sizeof(Var), 1, file);
-		}
-	}
+	size_t written = 0;
 
+	for(; written < program.size; written += program.size * fwrite(program.data, program.size, 1, file));
+
+	if(written != program.size){
+		printf("[ERROR] Expected To Write %zu bytes, Wrote %zu Instead\n", program.size, written);
+		exit(INTERNAL_ERROR_INTERNAL);
+	}
 
 	fclose(file);
 }
@@ -341,10 +447,11 @@ int main(int argc, char** argv){
 
 	unsigned char program_data[PROGRAM_CAP];
 	unsigned char stream_data[MAX_COMP_STC_STRM_MEMCAP];
+	label_count = 0;
 
 	stream = (Stream){.data = stream_data, .size = 0, .capacity = MAX_COMP_STC_STRM_MEMCAP};
 
-	Program program = (Program){.data = program_data, .size = 0, .capacity = PROGRAM_CAP / sizeof(Exp)};
+	Program program = (Program){.data = program_data, .size = 0, .capacity = PROGRAM_CAP};
 
 	S_file_t file = read_file((String){}, argv[1]);
 

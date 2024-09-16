@@ -15,6 +15,7 @@ ERROR_UNKOWN_INSTRUCTION,
 ERROR_INVALID_OPERAND,
 ERROR_INVALID_OPERAND_COUNT,
 ERROR_INVALID_SYNTAX,
+ERROR_UNRESOLVED_SYMBOL,
 
 ERROR_PROGRAM_SIZE_OVERFLOW,
 
@@ -153,11 +154,18 @@ typedef struct InternalInst
     String str;
 } InternalInst;
 
+typedef union Atom
+{
+    Var as_operand;
+    Inst as_inst;
+} Atom;
+
 
 typedef Stream Program;
 
+#define COMMENT_SYM ';'
 #define SIZEOF_CHUNK sizeof(unsigned char)
-#define PROGRAM_CAP (1024 * sizeof(Exp))
+#define PROGRAM_CAP (1024)
 #define MAX_COMP_STC_STRM_MEMCAP 10240
 #define LABEL_CAP 1000
 
@@ -182,8 +190,12 @@ void throw_error(int error, const char* aux){
     case ERROR_INVALID_SYNTAX:
         printf("[ERROR] Invalid Syntax: '%s'\n", aux);
         break;
+    case ERROR_UNRESOLVED_SYMBOL:
+        printf("[ERROR] Unresolved Symbol '%s'\n", aux);
+        break;
+    
     case ERROR_PROGRAM_SIZE_OVERFLOW:
-        printf("[ERROR] Program Size Overflow, Maximum Program Size Is %zu\n", PROGRAM_CAP);
+        printf("[ERROR] Program Size Overflow, Maximum Program Size Is %zu\n", (size_t)PROGRAM_CAP);
         break;
     
     case INTERNAL_ERROR_INTERNAL:

@@ -1,3 +1,5 @@
+#define N_ITER 10.0f
+
 push 1.0f;
 dup;
 push 1.0f;
@@ -40,7 +42,7 @@ pop;
 
 push 1;
 read;
-push 10.0f;
+push N_ITER;
 smallerf;
 push 3;
 read;
