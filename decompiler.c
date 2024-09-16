@@ -117,7 +117,7 @@ size_t print_inst(const Program program, size_t inst_address){
         return sizeof(Inst);
 
     default:
-        printf("[ERROR] Unkown Instruction %u\n", inst);
+        printf("[ERROR] Error At %zu Intruction, Unkown Instruction %u\n", inst_address, inst);
         exit(ERROR_UNKOWN_INSTRUCTION);
         return sizeof(Inst);
     }
@@ -138,8 +138,9 @@ int main(int argc, char** argv){
 		printf("[ERROR] Invalid File Path '%s'\n", argv[1]);
 		exit(ERROR_INVALID_FILE_PATH);
 	}
+    unsigned char pdata[1024];
 
-    Program program = (Program){.data = malloc(1024), .size = 0, .capacity = 1024};
+    Program program = (Program){.data = pdata, .size = 0, .capacity = 1024};
 
     for(; !feof(file);){
         program.size += SIZEOF_CHUNK * fread(program.data + program.size, SIZEOF_CHUNK, program.capacity / SIZEOF_CHUNK, file);

@@ -2,19 +2,6 @@
 #include <stdlib.h>
 #include "core.h"
 
-
-typedef struct String{
-	char* c_str;
-	size_t size;
-} String;
-
-typedef struct S_file_t{
-	String path;
-	String mother_dir;
-	String contents;
-} S_file_t;
-
-
 static inline void print_str(const String str){
 	for(size_t i = 0; i < str.size; i+=1){
 		printf("%c", str.c_str[i]);
@@ -22,6 +9,7 @@ static inline void print_str(const String str){
 }
 
 Stream stream;
+Label labels[LABEL_CAP];
 
 #define MKSTR(INPUT) (String){.c_str = INPUT, .size = (sizeof(INPUT) - 1) / sizeof(char)}
 #define INGORED_CHAR(CHAR) (CHAR == ' ' || CHAR == '\n' || CHAR == '\t')
@@ -117,6 +105,16 @@ static inline int compare_str(String str1, String str2){
 
 }
 
+static inline String get_next_token(String string, size_t pos){
+	int64_t begin = find_next_significant_char(string, pos);
+	if(begin < 0){
+		return (String){};
+	}
+	int64_t size = find_next_insignificant_char(string, pos + begin);
+	if(size < 0) size = string.size - begin - pos;
+	return (String){.c_str = string.c_str + begin + pos, .size = size};
+}
+
 uint64_t u64_pow(uint64_t base, uint64_t exponent){
 	uint64_t output = 1;
 	for(uint64_t i = 0; i < exponent; i+=1){
@@ -173,49 +171,28 @@ static inline Var get_operand(String str){
 	return output;
 }
 
-static inline Var parse_operand(String str){
-	String operand_str;
-	size_t i = 0;
-	for(; i < str.size && INGORED_CHAR(str.c_str[i]); i+=1);
-	const int64_t eo_op = find_next_insignificant_char(str, i);
-	operand_str.c_str = str.c_str + i;
-	operand_str.size = (eo_op < 0)? str.size - i : eo_op;
-	if(operand_str.c_str[operand_str.size - 1] == ';') operand_str.size -= 1;
-	return get_operand(operand_str);
+static inline InternalInst parse_macro(String str_exp){
+	const String inst_str = get_next_token(str_exp, 0);
+
+	if(compare_str(inst_str, MKSTR("#include"))){
+		const size_t offset = inst_str.size + (inst_str.c_str - str_exp.c_str);
+		const int64_t operand_begin = find_char(str_exp, '"', offset);
+		const int64_t operand_size = find_char(str_exp, '"', 1 + operand_begin + offset);
+		if(operand_begin < 0 || operand_size < 0){
+			str_exp.c_str[str_exp.size];
+			throw_error(ERROR_INVALID_SYNTAX, str_exp.c_str);
+		}
+		const String path__ = (String){.c_str = str_exp.c_str + operand_begin + offset + 1, .size = operand_size};
+		return (InternalInst){.inst = INTERNAL_INSTRUCTION_INCLUDE, .str = path__};
+	}
+	inst_str.c_str[inst_str.size] = '\0';
+	throw_error(ERROR_UNKOWN_INSTRUCTION, inst_str.c_str);
+	return (InternalInst){};
 }
 
-static inline Exp parse_expression(String str_exp, int id){
+static inline Exp parse_expression(String str_exp){
 
-	String inst_str;
-	{
-		size_t i = 0;
-
-		for(; i < str_exp.size && INGORED_CHAR(str_exp.c_str[i]); i+=1);
-
-		const int64_t eo_inst = find_next_insignificant_char(str_exp, i);
-		inst_str.c_str = str_exp.c_str + i;
-		inst_str.size = (eo_inst < 0)? str_exp.size - i : eo_inst;
-	}
-
-	if(id){
-		if(compare_str(inst_str, MKSTR("#include"))){
-			const int64_t operand_begin = find_char(str_exp, '"', inst_str.size + (inst_str.c_str - str_exp.c_str));
-			const int64_t operand_size = find_char(str_exp, '"', 1 + operand_begin + inst_str.size + (inst_str.c_str - str_exp.c_str));
-			if(operand_begin < 0 || operand_size < 0){
-				str_exp.c_str[str_exp.size];
-				throw_error(ERROR_INVALID_SYNTAX, str_exp.c_str);
-			}
-			return (Exp){
-				.num_of_operands = 2,
-				.instruction = INTERNAL_INSTRUCTION_INCLUDE,
-				.operand = (Var){.as_ptr = str_exp.c_str + operand_begin + inst_str.size + (inst_str.c_str - str_exp.c_str) + 1},
-				.operand_aux = (Var){.as_uint64 = operand_size}
-			};
-		}
-		inst_str.c_str[inst_str.size] = '\0';
-		throw_error(ERROR_UNKOWN_INSTRUCTION, inst_str.c_str);
-		return (Exp){};
-	}
+	String inst_str = get_next_token(str_exp, 0);
 
 	if(compare_str(inst_str, MKSTR("halt")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_HALT};
@@ -227,8 +204,8 @@ static inline Exp parse_expression(String str_exp, int id){
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_IP};
 
 	if(compare_str(inst_str, MKSTR("push"))){
-		const String operand_str = (String){.c_str = inst_str.c_str + inst_str.size, .size = str_exp.size - inst_str.size};
-		return (Exp){.num_of_operands = 1, .instruction = INSTRUCTION_PUSH, .operand = parse_operand(operand_str)};
+		const String operand_str = get_next_token(str_exp, inst_str.size + (inst_str.c_str - str_exp.c_str));
+		return (Exp){.num_of_operands = 1, .instruction = INSTRUCTION_PUSH, .operand = get_operand(operand_str)};
 	}
 	if(compare_str(inst_str, MKSTR("pop")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_POP};
@@ -307,19 +284,13 @@ void parse(Program* program, S_file_t _file){
 		if(file.c_str[i] == '#'){
 			const int64_t exp_size = find_char(file, '\n', i);
 			const String exp_str = (String){.c_str = file.c_str + i, .size = (exp_size < 0)? file.size - i : exp_size};
-			Exp macro_expr = parse_expression(exp_str, 1);
-			switch (macro_expr.instruction)
-			{
-			case INTERNAL_INSTRUCTION_INCLUDE:{
-				const char c = ((const char*)(macro_expr.operand.as_ptr))[macro_expr.operand_aux.as_uint64];
-				((char*)(macro_expr.operand.as_ptr))[macro_expr.operand_aux.as_uint64] = '\0';
-				S_file_t __file = read_file(_file.mother_dir, (const char*)macro_expr.operand.as_ptr);
+			InternalInst iinst =  parse_macro(exp_str);
+			if(iinst.inst = INTERNAL_INSTRUCTION_INCLUDE){
+				const char c = iinst.str.c_str[iinst.str.size];
+				iinst.str.c_str[iinst.str.size] = '\0';
+				S_file_t __file = read_file(_file.mother_dir, iinst.str.c_str);
 				parse(program, __file);
-				((char*)(macro_expr.operand.as_ptr))[macro_expr.operand_aux.as_uint64] = c;
-			} break;
-			
-			default:
-				break;
+				iinst.str.c_str[iinst.str.size] = c;
 			}
 			last_expr_index = exp_size + i;
 			i = last_expr_index - 1;
@@ -328,7 +299,7 @@ void parse(Program* program, S_file_t _file){
 		if(file.c_str[i] == ';'){
 			const size_t expr_str_size = i - last_expr_index;
 			((Exp*)(program->data))[program->size++] = parse_expression(
-				(String){.c_str = file.c_str + last_expr_index, .size = expr_str_size}, 0
+				(String){.c_str = file.c_str + last_expr_index, .size = expr_str_size}
 			);
 			
 			if(program->size >= program->capacity){

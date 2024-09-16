@@ -26,11 +26,24 @@ INTERNAL_ERROR_COUNT
 
 };
 
+
+typedef struct String{
+	char* c_str;
+	size_t size;
+} String;
+
 typedef struct Stream{
     unsigned char* data;
     size_t         size;
     size_t         capacity;
 } Stream;
+
+
+typedef struct S_file_t{
+	String path;
+	String mother_dir;
+	String contents;
+} S_file_t;
 
 void resize_stream(Stream* stream, size_t new_capacity){
 
@@ -129,11 +142,24 @@ typedef struct Expression{
     Var operand_aux;
 } Exp;
 
+typedef struct Label{
+    String str;
+    String def;
+} Label;
+
+typedef struct InternalInst
+{
+    Inst inst;
+    String str;
+} InternalInst;
+
+
 typedef Stream Program;
 
 #define SIZEOF_CHUNK sizeof(unsigned char)
 #define PROGRAM_CAP (1024 * sizeof(Exp))
 #define MAX_COMP_STC_STRM_MEMCAP 10240
+#define LABEL_CAP 1000
 
 void throw_error(int error, const char* aux){
     switch (error)
