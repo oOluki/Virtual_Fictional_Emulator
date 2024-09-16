@@ -23,7 +23,7 @@ size_t ip;
 } vm;
 
 
-void load_program(const char* path){
+void load_program(const char* path, Vm_flags flags){
     FILE* file = fopen(path, "rb");
 
     if(!file){
@@ -217,24 +217,108 @@ size_t eval_inst(size_t inst_address){
     }
 }
 
-
+void print_help_message(){
+    printf("[HELP] Usage: ./vimulator <path_to_executable> <optional: flags>\n");
+    printf("[HELP] Usage ./vimulator --help to display this help message\n");
+    printf(
+        "[HELP] flags can be:\n"
+        "    '-d': run in degub mode\n"
+    );
+}
 
 
 int main(int argc, char** argv){
 
 	if(argc < 2){
-		printf("[HELP] Usage: ./vimulator <path_to_executable>\n");
-		printf("[ERROR] Expected At Least One Argument, Got NONE Instead\n");
+		fprintf(stderr, "[ERROR] Expected At Least One Argument, Got NONE Instead\n");
+        printf("[HELP] Use ./vimulator --help to display a help message\n");
 		return ERROR_INVALID_USAGE;
 	}
 
-	load_program(argv[1]);
+    Vm_flags flags = VM_FLAG_STD;
 
-    for(
+    if(argc == 2 && argv[1][0] == '-'){ // checking for the special case ./vimulator --help
+        size_t argv_size = 0;
+        for(; argv[1][argv_size]; argv_size += 1);
+        const String argv_str = (String){.c_str = argv[1], .size = argv_size};
+        if(compare_str(argv_str, MKSTR("--help"))){
+            print_help_message();
+            return 0;
+        }
+    }
+
+    for(int i = 2; i < argc; i += 1){ // checking for special flags
+        size_t argv_size = 0;
+        for(; argv[i][argv_size]; argv_size += 1);
+        const String argv_str = (String){.c_str = argv[i], .size = argv_size};
+        if(compare_str(argv_str, MKSTR("--help"))){
+            print_help_message();
+        } else if(compare_str(argv_str, MKSTR("-d"))){
+            flags |= VM_FLAG_DEBUG;
+        } else{
+            fprintf(stderr, "[ERROR] Invalid Flag '%s'\n", argv[i]);
+            return 1;
+        }
+    }
+
+	load_program(argv[1], flags);
+
+    if(flags & VM_FLAG_DEBUG){
+        printf(
+            "[DEBUG] enter:\n"
+            "'e' to exit\n"
+            "'s' to display stack; "
+            "'i' to display instruction; "
+            "'n' to evaluate the next instruction\n"
+        );
+        do{
+            // getting input
+            char c = fgetc(stdin);
+            if(c == '\n') continue;
+            size_t stride = 0;
+            // evaluating
+            switch (c)
+            {
+            case 's':
+                printf("stack:\n");
+                for(size_t i = 0; i < vm.stack_size; i+=1){
+                    const Var var = vm.stack[i];
+                    printf(
+                        "\t%" PRIu64 "-- i: %" PRId64 ", u: %" PRIu64 ", f: %f, ptr: %p\n",
+                        (uint64_t)i, var.as_int64, var.as_uint64, var.as_float64, var.as_ptr
+                    );
+                }
+                break;
+            case 'i':
+                printf("inst:\n");
+                print_inst(
+                    (Program){
+                        .data = vm.internal_memory,
+                        .size = vm.internal_memory_size,
+                        .capacity = vm.internal_memory_size
+                    }, vm.ip
+                );
+                break;
+            case 'n':
+                stride = 1;
+                break;
+            case 'e':
+                return 0;
+            
+            default:
+                printf("[DEBUG] ERROR: invalid input '%c'\n", c);
+                break;
+            }
+            for(size_t i = 0; i++ < stride; vm.ip += eval_inst(vm.ip));
+        } while(vm.ip < vm.internal_memory_size);
+    }
+    else {
+        for(
         vm.ip = 0;
         vm.ip < vm.internal_memory_size;
         vm.ip += eval_inst(vm.ip)
-    );
+        );
+    }
 
 
     return 0;

@@ -14,7 +14,6 @@ Stream stream;
 Label labels[LABEL_CAP];
 size_t label_count;
 
-#define MKSTR(INPUT) (String){.c_str = INPUT, .size = (sizeof(INPUT) - 1) / sizeof(char)}
 #define INGORED_CHAR(CHAR) (CHAR == ' ' || CHAR == '\n' || CHAR == '\t')
 
 static inline int64_t find_char(String str, char c, size_t off_set){
@@ -44,18 +43,6 @@ static inline int64_t find_next_insignificant_char(String str, size_t offset){
 		if(INGORED_CHAR(str.c_str[i])) return (int64_t)(i - offset);
 	}
 	return -1;
-}
-
-static inline int compare_str(String str1, String str2){
-	if(str1.size != str2.size){
-		return 0;
-	}
-
-	for(size_t i = 0; i < str1.size; i+=1){
-		if(str1.c_str[i] != str2.c_str[i]) return 0;
-	}
-	return 1;
-
 }
 
 static inline void add_label(Label label){

@@ -120,12 +120,20 @@ INSTRUCTION_DIVF,
 INSTRUCTION_SMALLERF,
 INSTRUCTION_BIGGERF,
 
+DEBUG_INSTRUCTION_BREAK,
+
 INTERNAL_INSTRUCTION_INCLUDE,
 INTERNAL_INSTRUCTION_DEFINE,
 
 // for internal counting purposes
 INTERNAL_INSTRUCTION_COUNT
 } Inst;
+
+typedef enum Vm_flags{
+    VM_FLAG_NONE = 0,
+    VM_FLAG_STD = 1 << 0,
+    VM_FLAG_DEBUG = 1 << 1,
+} Vm_flags;
 
 
 typedef union Var{
@@ -163,11 +171,25 @@ typedef union Atom
 
 typedef Stream Program;
 
+#define MKSTR(INPUT) (String){.c_str = INPUT, .size = (sizeof(INPUT) - 1) / sizeof(char)}
+
 #define COMMENT_SYM ';'
 #define SIZEOF_CHUNK sizeof(unsigned char)
 #define PROGRAM_CAP (1024)
 #define MAX_COMP_STC_STRM_MEMCAP 10240
 #define LABEL_CAP 1000
+
+static inline int compare_str(String str1, String str2){
+	if(str1.size != str2.size){
+		return 0;
+	}
+
+	for(size_t i = 0; i < str1.size; i+=1){
+		if(str1.c_str[i] != str2.c_str[i]) return 0;
+	}
+	return 1;
+
+}
 
 void throw_error(int error, const char* aux){
     switch (error)
@@ -208,6 +230,127 @@ void throw_error(int error, const char* aux){
         break;
     }
     exit(error);
+}
+
+// returns the size taken by the instruction for convenience
+size_t print_inst(const Program program, size_t inst_address){
+    const Inst inst = *(Inst*)(program.data + inst_address);
+    switch (inst)
+    {
+    case INSTRUCTION_HALT:
+        printf("halt;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_DUMP_STACK:
+        printf("dump;\n");
+        sizeof(Inst);
+        return sizeof(Inst);
+    case INSTRUCTION_GSP:
+        printf("gsp;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_IP:
+        printf("ip;\n");
+        return sizeof(Inst);
+
+    case INSTRUCTION_PUSH:{
+        const Var operand = *(Var*)(program.data + inst_address + sizeof(Inst));
+        printf("push (f: %f; int64: %" PRId64 "; uint64: %" PRIu64 "; ptr: %p);\n",
+        operand.as_float64, operand.as_int64, operand.as_uint64, operand.as_ptr);
+    } return sizeof(Inst) + sizeof(Var);
+    case INSTRUCTION_POP:
+        printf("pop;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_CLEAN:
+        printf("clean;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_DUP:
+        printf("dup;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_READ:
+        printf("read;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_SET:
+        printf("set;\n");
+        return sizeof(Inst);
+    
+    case INSTRUCTION_NOT:
+        printf("not;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_EQUAL:
+        printf("eq;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_JMP:
+        printf("jmp;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_JMP_IF:
+        printf("jmpf;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_JMP_IFNOT:
+        printf("jmpnf;\n");
+        return sizeof(Inst);
+
+    
+    case INSTRUCTION_PLUSI:
+        printf("plusi;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_MINUSI:
+        printf("minusi;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_MULI:
+        printf("muli;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_DIVI:
+        printf("divi;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_SMALLERI:
+        printf("smalleri;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_BIGGERI:
+        printf("biggeri;\n");
+        return sizeof(Inst);
+    
+    case INSTRUCTION_PLUSU:
+        printf("plusu;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_MINUSU:
+        printf("minusu;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_MULU:
+        printf("mulu;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_DIVU:
+        printf("divu;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_SMALLERU:
+        printf("smalleru;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_BIGGERU:
+        printf("biggeru;\n");
+        return sizeof(Inst);
+
+    case INSTRUCTION_PLUSF:
+        printf("plusf;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_MINUSF:
+        printf("minusf;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_MULF:
+        printf("mulf;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_DIVF:
+        printf("divf;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_SMALLERF:
+        printf("smallerf;\n");
+        return sizeof(Inst);
+    case INSTRUCTION_BIGGERF:
+        printf("biggerf;\n");
+        return sizeof(Inst);
+
+    default:
+        printf("[ERROR] Error At %zu Intruction, Unkown Instruction %u\n", inst_address, inst);
+        exit(ERROR_UNKOWN_INSTRUCTION);
+        return sizeof(Inst);
+    }
 }
 
 
