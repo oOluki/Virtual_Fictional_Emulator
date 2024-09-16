@@ -67,16 +67,17 @@ size_t eval_inst(size_t inst_address){
         exit(0);
         return sizeof(Inst);
     case INSTRUCTION_DUMP_STACK:
+        printf("stack:\n");
         for(size_t i = 0; i < vm.stack_size; i+=1){
             const Var var = vm.stack[i];
             printf(
-                "%" PRIu64 "-- i: %" PRId64 ", u: %" PRIu64 ", f: %f, ptr: %p\n",
+                "\t%" PRIu64 "-- i: %" PRId64 ", u: %" PRIu64 ", f: %f, ptr: %p\n",
                 (uint64_t)i, var.as_int64, var.as_uint64, var.as_float64, var.as_ptr
             );
         }
         return sizeof(Inst);
     case INSTRUCTION_GSP:
-        vm.stack[vm.stack_size - 1].as_uint64 = (vm.stack_size++) - 1;
+        vm.stack[vm.stack_size].as_uint64 = (vm.stack_size++) - 1;
         return sizeof(Inst);
     case INSTRUCTION_IP:
         vm.stack[vm.stack_size++].as_uint64 = inst_address + sizeof(Inst);

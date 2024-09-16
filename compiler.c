@@ -84,14 +84,14 @@ static inline String resolve_label(String str, int required){
 		str.c_str[str.size] = '\0';
 		throw_error(ERROR_UNRESOLVED_SYMBOL, str.c_str);
 	}
-	return (String){};
+	return (String){.c_str = NULL, .size = 0};
 }
 
 static inline String get_next_token(String string, size_t pos){
 
 	int64_t begin = find_next_significant_char(string, pos);
 	if(begin < 0){
-		return (String){};
+		return (String){.c_str = NULL, .size = 0};
 	}
 	int64_t size = find_next_insignificant_char(string, pos + begin);
 	if(size < 0) size = string.size - begin - pos;
@@ -237,7 +237,7 @@ static inline InternalInst parse_macro(String str_exp){
 
 	const String inst_str = get_next_token(str_exp, 0);
 
-	if(inst_str.c_str == NULL) return (InternalInst){};
+	if(inst_str.c_str == NULL) return (InternalInst){.inst = 0, .str = NULL};
 
 	if(compare_str(inst_str, MKSTR("#include"))){
 		const size_t offset = inst_str.size + (inst_str.c_str - str_exp.c_str);
@@ -258,11 +258,11 @@ static inline InternalInst parse_macro(String str_exp){
 		}
 		const String tkn2 = get_next_token(str_exp, tkn1.size + (tkn1.c_str - str_exp.c_str));
 		add_label((Label){.str = tkn1, .def = tkn2});
-		return (InternalInst){};
+		return (InternalInst){.inst = 0, .str = NULL};
 	}
 	inst_str.c_str[inst_str.size] = '\0';
 	throw_error(ERROR_UNKOWN_INSTRUCTION, inst_str.c_str);
-	return (InternalInst){};
+	return (InternalInst){.inst = 0, .str = NULL};
 }
 
 static inline Exp resolve_inst(String str_exp, int required){
@@ -274,7 +274,7 @@ static inline Exp resolve_inst(String str_exp, int required){
 			str_exp.c_str[str_exp.size] = '\0';
 			throw_error(ERROR_UNKOWN_INSTRUCTION, str_exp.c_str);
 		}
-		return (Exp){};
+		return (Exp){.num_of_operands = 0, .instruction = 0, .operand.as_ptr = NULL, .operand_aux.as_ptr = NULL};
 	}
 
 	if(compare_str(inst_str, MKSTR("halt")))
@@ -359,7 +359,7 @@ static inline Exp resolve_inst(String str_exp, int required){
 		inst_str.c_str[inst_str.size] = '\0';
 		throw_error(ERROR_UNKOWN_INSTRUCTION, inst_str.c_str);
 	}
-	return (Exp){};	
+	return (Exp){.num_of_operands = 0, .instruction = 0, .operand.as_ptr = NULL, .operand_aux.as_ptr = NULL};;	
 }
 
 void parse(Program* program, S_file_t _file){
@@ -453,7 +453,7 @@ int main(int argc, char** argv){
 
 	Program program = (Program){.data = program_data, .size = 0, .capacity = PROGRAM_CAP};
 
-	S_file_t file = read_file((String){}, argv[1]);
+	S_file_t file = read_file((String){.c_str = NULL, .size = 0}, argv[1]);
 
 	parse(&program, file);
 
