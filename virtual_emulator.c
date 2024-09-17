@@ -323,6 +323,7 @@ int main(int argc, char** argv){
                 );
                 break;
             case 'n':
+            
                 char __strN_str[11];
                 __strN_str[10] = '\0';
                 fgets(__strN_str, 10, stdin);
