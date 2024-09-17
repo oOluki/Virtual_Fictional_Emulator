@@ -202,7 +202,7 @@ static inline InternalInst parse_macro(String str_exp){
 		const int64_t operand_begin = find_char(str_exp, '"', offset);
 		const int64_t operand_size = find_char(str_exp, '"', 1 + operand_begin + offset);
 		if(operand_begin < 0 || operand_size < 0){
-			str_exp.c_str[str_exp.size];
+			str_exp.c_str[str_exp.size] = '\0';
 			throw_error(ERROR_INVALID_SYNTAX, str_exp.c_str);
 		}
 		const String path__ = (String){.c_str = str_exp.c_str + operand_begin + offset + 1, .size = operand_size};

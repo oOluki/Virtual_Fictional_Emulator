@@ -322,19 +322,19 @@ int main(int argc, char** argv){
                 );
                 break;
             case 'n':
-                char N_str[11];
-                N_str[10] = '\0';
-                fgets(N_str, 10, stdin);
-                if(N_str[0] == '\n'){ // case of a stand alone 'n'
+                char __strN_str[11];
+                __strN_str[10] = '\0';
+                fgets(__strN_str, 10, stdin);
+                if(__strN_str[0] == '\n'){ // case of a stand alone 'n'
                     stride = 1;
                     break;
-                } else if(N_str[0] == '-'){
+                } else if(__strN_str[0] == '-'){
                     stride = (size_t)(-1);
                     break;
                 }
-                const int N = get_int_fromstr(N_str);
+                const int N = get_int_fromstr(__strN_str);
                 if(N < 0){
-                    printf("[DEBUG] ERROR: invalid input '%s'\n", N_str);
+                    printf("[DEBUG] ERROR: invalid input '%s'\n", __strN_str);
                     break;
                 }
                 stride = N;

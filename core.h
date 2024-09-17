@@ -272,7 +272,6 @@ size_t print_inst(const Program program, size_t inst_address){
         return sizeof(Inst);
     case INSTRUCTION_DUMP_STACK:
         printf("dump;\n");
-        sizeof(Inst);
         return sizeof(Inst);
     case INSTRUCTION_GSP:
         printf("gsp;\n");
