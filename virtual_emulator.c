@@ -77,7 +77,8 @@ size_t eval_inst(size_t inst_address){
         }
         return sizeof(Inst);
     case INSTRUCTION_GSP:
-        vm.stack[vm.stack_size].as_uint64 = (vm.stack_size++) - 1;
+        vm.stack[vm.stack_size].as_uint64 = vm.stack_size - 1;
+        vm.stack_size += 1;
         return sizeof(Inst);
     case INSTRUCTION_IP:
         vm.stack[vm.stack_size++].as_uint64 = inst_address + sizeof(Inst);
