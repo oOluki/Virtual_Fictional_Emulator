@@ -322,8 +322,7 @@ int main(int argc, char** argv){
                     }, vm.ip
                 );
                 break;
-            case 'n':
-            
+            case 'n':{
                 char __strN_str[11];
                 __strN_str[10] = '\0';
                 fgets(__strN_str, 10, stdin);
@@ -340,7 +339,7 @@ int main(int argc, char** argv){
                     break;
                 }
                 stride = N;
-                break;
+            } break;
             case 'e':
                 return 0;
             
@@ -348,7 +347,12 @@ int main(int argc, char** argv){
                 printf("[DEBUG] ERROR: invalid input '%c'\n", c);
                 break;
             }
-            for(size_t i = 0; i++ < stride && vm.ip < vm.internal_memory_size; vm.ip += eval_inst(vm.ip)){
+            
+            for(
+                size_t i = 0;
+                i++ < stride && vm.ip < vm.internal_memory_size;
+                vm.ip += eval_inst(vm.ip)
+            ){
                 inst_count += 1;
             }
         } while(vm.ip < vm.internal_memory_size);
