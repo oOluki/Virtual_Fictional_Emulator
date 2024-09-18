@@ -5,7 +5,7 @@ dup;
 push 1.0f;
 
 
-ip;
+loop:
 
 push 1.0f;
 
@@ -44,12 +44,10 @@ push 1;
 read;
 push N_ITER;
 smallerf;
-push 3;
-read;
-
+push loop;
 jmpf;
 
-pop;
+
 pop;
 pop;
 push 1.0f;

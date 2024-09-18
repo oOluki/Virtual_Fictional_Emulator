@@ -212,7 +212,7 @@ size_t eval_inst(size_t inst_address){
         return sizeof(Inst);
 
     default:
-        printf("[ERROR] Unkown Instruction %u\n", (unsigned int)inst);
+        printf("[ERROR] At Instruction Address %zu Unkown Instruction %u\n", vm.ip, (unsigned int)inst);
         exit(ERROR_UNKOWN_INSTRUCTION);
         return sizeof(Inst);
     }
@@ -293,7 +293,6 @@ int main(int argc, char** argv){
             "'i' to display instruction; "
             "'n<count>' to evaluate the next <count> instructions. if <count> = -1: evaluate to the end of the program\n"
         );
-        size_t inst_count = 0;
         do{
             // getting input
             char c = fgetc(stdin);
@@ -313,7 +312,7 @@ int main(int argc, char** argv){
                 }
                 break;
             case 'i':
-                printf("inst %zu:\n\t", inst_count);
+                printf("inst %zu:\n\t", vm.ip);
                 print_inst(
                     (Program){
                         .data = vm.internal_memory,
@@ -352,9 +351,7 @@ int main(int argc, char** argv){
                 size_t i = 0;
                 i++ < stride && vm.ip < vm.internal_memory_size;
                 vm.ip += eval_inst(vm.ip)
-            ){
-                inst_count += 1;
-            }
+            );
         } while(vm.ip < vm.internal_memory_size);
     }
     else {

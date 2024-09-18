@@ -153,7 +153,11 @@ typedef struct Expression{
 
 typedef struct Label{
     String str;
-    String def;
+    union {
+        String as_str;
+        uint64_t as_uint64;
+    } def;
+    int is_int;
 } Label;
 
 typedef struct InternalInst
@@ -174,6 +178,7 @@ typedef Stream Program;
 #define MKSTR(INPUT) (String){.c_str = INPUT, .size = (sizeof(INPUT) - 1) / sizeof(char)}
 
 #define COMMENT_SYM ';'
+#define INST_LABEL_SYM ':'
 #define SIZEOF_CHUNK sizeof(unsigned char)
 #define PROGRAM_CAP (1024)
 #define MAX_COMP_STC_STRM_MEMCAP 10240

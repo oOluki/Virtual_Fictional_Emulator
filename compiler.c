@@ -37,6 +37,11 @@ static inline int64_t find_next_significant_char(String str, size_t offset){
 	return -1;
 }
 
+static inline char get_next_significant_character(String str, size_t offset){
+	const int64_t i = find_next_significant_char(str, offset);
+	return(i > 0)? str.c_str[i + offset] : '\0';
+}
+
 static inline int64_t find_next_insignificant_char(String str, size_t offset){
 	for(size_t i = offset; i < str.size; i+=1){
 		if(str.c_str[i] == COMMENT_SYM) return (int64_t)(i - offset);
@@ -61,17 +66,21 @@ static inline void add_label(Label label){
 	labels[label_count++] = label;
 }
 
-static inline String resolve_label(String str, int required){
+static inline Label resolve_label(String str, int required){
 	for(size_t i = 0; i < label_count; i += 1){
 		if(compare_str(str, labels[i].str)){
-			return labels[i].def;
+			return labels[i];
 		}
 	}
 	if(required){
 		str.c_str[str.size] = '\0';
 		throw_error(ERROR_UNRESOLVED_SYMBOL, str.c_str);
 	}
-	return (String){.c_str = NULL, .size = 0};
+	return (Label){
+		.str = (String){.c_str = NULL, .size = 0},
+		.def = (String){.c_str = NULL, .size = 0},
+		.is_int = 0
+	};
 }
 
 static inline String get_next_token(String string, size_t pos){
@@ -215,7 +224,7 @@ static inline InternalInst parse_macro(String str_exp){
 			throw_error(ERROR_INVALID_SYNTAX, str_exp.c_str);
 		}
 		const String tkn2 = get_next_token(str_exp, tkn1.size + (tkn1.c_str - str_exp.c_str));
-		add_label((Label){.str = tkn1, .def = tkn2});
+		add_label((Label){.str = tkn1, .def = tkn2, .is_int = 0});
 		return (InternalInst){.inst = 0, .str = NULL};
 	}
 	inst_str.c_str[inst_str.size] = '\0';
@@ -326,6 +335,8 @@ void parse(Program* program, S_file_t _file){
 
 	const String file = _file.contents;
 
+	String last_token = (String){.c_str = NULL, .size = 0};
+
 	int operands_expected = 0;
 
 	for(size_t i = 0; i < file.size; ){
@@ -357,7 +368,11 @@ void parse(Program* program, S_file_t _file){
 		if(operands_expected > 0){
 			Var operand;
 			if(token.c_str != NULL && get_int(token.c_str[0]) < 0 && token.c_str[0] != '-'){
-				operand = get_operand(resolve_label(token, 1));
+				const Label label = resolve_label(token, 1);
+				if(label.is_int)
+					operand.as_uint64 = label.def.as_uint64;
+				else 
+					operand = get_operand(resolve_label(token, 1).def.as_str);
 			}
 			else operand = get_operand(token);
 			if(program->size + sizeof(Var) >= PROGRAM_CAP) throw_error(ERROR_PROGRAM_SIZE_OVERFLOW, "");
@@ -365,8 +380,28 @@ void parse(Program* program, S_file_t _file){
 			program->size += sizeof(Var);
 			operands_expected -= 1;
 		} else{
+			const int64_t nsc = find_next_significant_char(file, i);
+			if(
+				(nsc >= 0 && file.c_str[i + nsc] == INST_LABEL_SYM) ||
+				token.c_str[token.size -1] == INST_LABEL_SYM
+			){
+				if(token.c_str[token.size -1] == INST_LABEL_SYM){
+					token.size -= 1;
+					i += nsc;
+				} else i += nsc + 1;
+				add_label((Label){.str = token, .def.as_uint64 = program->size, .is_int = 1});
+				continue;
+			}
 			Exp expr = resolve_inst(token, 0);
-			if(expr.instruction == 0) expr = resolve_inst(resolve_label(token, 1), 1);
+			if(expr.instruction == 0){
+				const Label label = resolve_label(token, 1);
+				if(label.is_int){
+					token.c_str[token.size] = '\0';
+					printf("Label '%s' Resolves To '%" PRIu64 "'\n", token.c_str, label.def.as_uint64);
+					throw_error(ERROR_INVALID_SYNTAX, token.c_str);
+				}
+				expr = resolve_inst(label.def.as_str, 1);
+			}
 			operands_expected += expr.num_of_operands;
 			if(program->size + sizeof(Inst) >= PROGRAM_CAP) throw_error(ERROR_PROGRAM_SIZE_OVERFLOW, "");
 			*(Inst*)(program->data + program->size) = expr.instruction;
