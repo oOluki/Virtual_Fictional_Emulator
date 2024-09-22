@@ -1,0 +1,112 @@
+# This was created by modifing github's 'CMake on multiple platforms'
+name: VFE
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
+      fail-fast: false
+
+      # Set up a matrix to run the following 4 configurations:
+      # 1. <Windows, Release, latest MSVC compiler>
+      # 2. <Linux, Release, latest GCC compiler>
+      # 3. <Linux, Release, latest Clang compiler>
+      # 4. <MacOS, Release, latest Clang compiler>
+      #
+      # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        build_type: [Release]
+        c_compiler: [gcc, clang, cl]
+        include:
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
+          - os: ubuntu-latest
+            c_compiler: gcc
+            cpp_compiler: g++
+          - os: ubuntu-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+          - os: macos-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+        exclude:
+          - os: windows-latest
+            c_compiler: gcc
+          - os: windows-latest
+            c_compiler: clang
+          - os: ubuntu-latest
+            c_compiler: cl
+          - os: macos-latest
+            c_compiler: gcc
+          - os: macos-latest
+            c_compiler: cl
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set reusable strings
+      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
+      id: strings
+      shell: bash
+      run: |
+        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        echo "examples-dir=${{ github.workspace }}/examples" >> "$GITHUB_OUTPUT"
+
+    - name: Build
+      run: |
+        mkdir ${{ steps.strings.outputs.build-output-dir }}
+        ${{ matrix.c_compiler }} ${{ github.workspace }}/compiler.c -o ${{ steps.strings.outputs.build-output-dir }}/fictiler
+        ${{ matrix.c_compiler }} ${{ github.workspace }}/decompiler.c ${{ steps.strings.outputs.build-output-dir }}/devirtual
+        ${{ matrix.c_compiler }} ${{ github.workspace }}/virtual_emulator.c ${{ steps.strings.outputs.build-output-dir }}/vimulator
+
+    - name: Test (Windows)
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      if: runner.os == 'Windows'
+      run: |
+        mkdir ${{ steps.strings.outputs.examples-dir }}
+
+        setlocal EnableDelayedExpansion
+        for %%f in (..\examples\*) do (
+
+          set file=%%f
+
+          for %%i in ("!file!") do(
+            set filename_without_extension=%%~ni
+            set "extension=%%~xi"
+          )
+
+          if /i "!extension!"==".fiction" (
+            .\fictiler %%f -o ${{ steps.strings.outputs.examples-dir }}/!filename_without_extension!.virtual
+          )
+
+        )
+        endlocal
+
+      
+    - name: Test (Linux and MacOS)
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      if: runner.os != 'Windows'
+      run: |
+        mkdir -p ${{ steps.strings.outputs.examples-dir }}
+
+        for file in ../examples/*; do
+        
+          filename="${file%.*}"
+          extension="${file##*.}"
+
+          if [[ "$extension" == "fiction" ]]; then
+            ./fictiler "$file" -o "${{ steps.strings.outputs.examples-dir }}/$(basename "$filename").virtual"
+          fi
+
+        done
+
