@@ -62,7 +62,16 @@ jobs:
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
         echo "examples-dir=${{ github.workspace }}/build/examples" >> "$GITHUB_OUTPUT"
 
-    - name: Build
+    - name: Build (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        mkdir ${{ steps.strings.outputs.build-output-dir }}
+        ${{ matrix.c_compiler }}.exe ${{ github.workspace }}/compiler.c -o ${{ steps.strings.outputs.build-output-dir }}/fictiler
+        ${{ matrix.c_compiler }}.exe ${{ github.workspace }}/decompiler.c  -o ${{ steps.strings.outputs.build-output-dir }}/devirtual
+        ${{ matrix.c_compiler }}.exe ${{ github.workspace }}/virtual_emulator.c -o ${{ steps.strings.outputs.build-output-dir }}/vimulator
+
+    - name: Build (Linux and MacOS)
+      if: runner.os == 'Windows'
       run: |
         mkdir ${{ steps.strings.outputs.build-output-dir }}
         ${{ matrix.c_compiler }} ${{ github.workspace }}/compiler.c -o ${{ steps.strings.outputs.build-output-dir }}/fictiler
