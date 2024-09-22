@@ -69,6 +69,7 @@ jobs:
 
     - name: Build (Windows)
       if: runner.os == 'Windows'
+      shell: cmd
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
         mkdir ${{ steps.strings.outputs.build-output-dir }}
