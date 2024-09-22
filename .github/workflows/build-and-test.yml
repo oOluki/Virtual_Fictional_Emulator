@@ -8,6 +8,7 @@ on:
     branches: [ "main" ]
 
 jobs:
+  # reference: https://github.com/danielzsh/spark/blob/master/.github/workflows/compile.yml
   windows-build:
     runs-on: 'windows-latest'
 
@@ -34,6 +35,7 @@ jobs:
 
     - name: Test (Windows)
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      shell: cmd
       run: |
         mkdir examples
 
