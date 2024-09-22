@@ -62,21 +62,30 @@ jobs:
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
         echo "examples-dir=${{ github.workspace }}/build/examples" >> "$GITHUB_OUTPUT"
 
+    - name: Set up Visual Studio
+      if: runner.os == 'Windows'
+      uses: microsoft/setup-msbuild@v1.1
+
+
     - name: Build (Windows)
       if: runner.os == 'Windows'
       run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
         mkdir ${{ steps.strings.outputs.build-output-dir }}
-        ${{ matrix.c_compiler }}.exe ${{ github.workspace }}/compiler.c -o ${{ steps.strings.outputs.build-output-dir }}/fictiler
-        ${{ matrix.c_compiler }}.exe ${{ github.workspace }}/decompiler.c  -o ${{ steps.strings.outputs.build-output-dir }}/devirtual
-        ${{ matrix.c_compiler }}.exe ${{ github.workspace }}/virtual_emulator.c -o ${{ steps.strings.outputs.build-output-dir }}/vimulator
+        set compiler=${{ matrix.c_compiler }}.exe
+        %compiler% ${{ github.workspace }}/compiler.c -o ${{ steps.strings.outputs.build-output-dir }}/fictiler.exe
+        %compiler% ${{ github.workspace }}/decompiler.c -o ${{ steps.strings.outputs.build-output-dir }}/devirtual.exe
+        %compiler% ${{ github.workspace }}/virtual_emulator.c -o ${{ steps.strings.outputs.build-output-dir }}/vimulator.exe
+    
 
     - name: Build (Linux and MacOS)
-      if: runner.os == 'Windows'
+      if: runner.os != 'Windows'
       run: |
         mkdir ${{ steps.strings.outputs.build-output-dir }}
         ${{ matrix.c_compiler }} ${{ github.workspace }}/compiler.c -o ${{ steps.strings.outputs.build-output-dir }}/fictiler
         ${{ matrix.c_compiler }} ${{ github.workspace }}/decompiler.c  -o ${{ steps.strings.outputs.build-output-dir }}/devirtual
         ${{ matrix.c_compiler }} ${{ github.workspace }}/virtual_emulator.c -o ${{ steps.strings.outputs.build-output-dir }}/vimulator
+
 
     - name: Test (Windows)
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
