@@ -60,20 +60,20 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-        echo "examples-dir=${{ github.workspace }}/examples" >> "$GITHUB_OUTPUT"
+        echo "examples-dir=${{ github.workspace }}/build/examples" >> "$GITHUB_OUTPUT"
 
     - name: Build
       run: |
         mkdir ${{ steps.strings.outputs.build-output-dir }}
         ${{ matrix.c_compiler }} ${{ github.workspace }}/compiler.c -o ${{ steps.strings.outputs.build-output-dir }}/fictiler
-        ${{ matrix.c_compiler }} ${{ github.workspace }}/decompiler.c ${{ steps.strings.outputs.build-output-dir }}/devirtual
-        ${{ matrix.c_compiler }} ${{ github.workspace }}/virtual_emulator.c ${{ steps.strings.outputs.build-output-dir }}/vimulator
+        ${{ matrix.c_compiler }} ${{ github.workspace }}/decompiler.c  -o ${{ steps.strings.outputs.build-output-dir }}/devirtual
+        ${{ matrix.c_compiler }} ${{ github.workspace }}/virtual_emulator.c -o ${{ steps.strings.outputs.build-output-dir }}/vimulator
 
     - name: Test (Windows)
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       if: runner.os == 'Windows'
       run: |
-        mkdir ${{ steps.strings.outputs.examples-dir }}
+        mkdir examples
 
         setlocal EnableDelayedExpansion
         for %%f in (..\examples\*) do (
@@ -86,7 +86,7 @@ jobs:
           )
 
           if /i "!extension!"==".fiction" (
-            .\fictiler %%f -o ${{ steps.strings.outputs.examples-dir }}/!filename_without_extension!.virtual
+            .\fictiler %%f  examples/!filename_without_extension!.virtual
           )
 
         )
@@ -97,7 +97,7 @@ jobs:
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       if: runner.os != 'Windows'
       run: |
-        mkdir -p ${{ steps.strings.outputs.examples-dir }}
+        mkdir -p examples
 
         for file in ../examples/*; do
         
@@ -105,7 +105,7 @@ jobs:
           extension="${file##*.}"
 
           if [[ "$extension" == "fiction" ]]; then
-            ./fictiler "$file" -o "${{ steps.strings.outputs.examples-dir }}/$(basename "$filename").virtual"
+            ./fictiler "../examples/$file" "examples/$(basename "$filename").virtual"
           fi
 
         done
