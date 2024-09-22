@@ -35,26 +35,32 @@ jobs:
 
     - name: Test (Windows)
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      shell: cmd
+      shell: pwsh
       run: |
         mkdir examples
 
-        setlocal EnableDelayedExpansion
-        for %%f in (..\examples\*) do (
-
-          set file=%%f
-
-          for %%i in ("!file!") do(
-            set filename_without_extension=%%~ni
-            set "extension=%%~xi"
-          )
-
-          if /i "!extension!"==".fiction" (
-            .\fictiler %%f  examples/!filename_without_extension!.virtual
-          )
-
-        )
-        endlocal
+        $files = Get-ChildItem -Path ..\examples\*.fiction
+        foreach ($file in $files) {
+            $filename_without_extension = [System.IO.Path]::GetFileNameWithoutExtension($file.FullName)
+            .\fictiler $file.FullName "examples/$filename_without_extension.virtual"
+        }
+      # keeping this here just in case (doesn't work though)
+      #shell: cmd
+      #run: |
+      #  mkdir examples
+      #  setlocal EnableDelayedExpansion
+      #  for %%f in (..\examples\*) do (
+      #    set "file=%%f"
+      #    for %%i in ("!file!") do (
+      #      set "filename_without_extension=%%~ni"
+      #      set "extension=%%~xi"
+      #    )
+      #    if /i "!extension!"==".fiction" (
+      #      .\fictiler.exe "!file!" examples\!filename_without_extension!.virtual
+      #    )
+      #  )
+      #  endlocal
+      
 
 
 
