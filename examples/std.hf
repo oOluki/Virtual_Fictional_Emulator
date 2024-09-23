@@ -1,6 +1,51 @@
+;; internal auxiliary labels for the factorial label
+story_internal_factorial_case0: ;;for when n < 2 => n! = 1
+    pop
+    push 1
+    swap
+    jmp
 
 
-push 1;
-push 1;
+;; calculates the factorial of the number behind the stack top (as_uint64) and returns to
+;; the instruction on top of the stack
+story_factorial:
+    swap
+    dup     ;; treat the case n < 2 => n! = 1
+    push 2
+    smalleru
+    push story_internal_factorial_case0
+    jmpf
+    dup
+
+    story_internal_factorial_loop: ;;;; stack at this point ret, n!, n
+    dup
+    push 1
+    minusu
+    gso 1
+    gso 1
+    set
+    reads 2
+    mulu
+    gso 2
+    gso 1
+    set
+    pop
+    dup
+    push 1
+    eq
+    push story_internal_factorial_loop
+    jmpnf                                 ;; if n != 1 jump to loop
+
+    pop
+    swap
+    jmp
+
+
+#undef story_internal_factorial_case0
+#undef story_internal_factorial_loop
+
+
+
+
 
 

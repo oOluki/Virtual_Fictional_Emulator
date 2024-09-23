@@ -11,10 +11,17 @@ static inline void print_str(const String str){
 
 
 Stream stream;
+
 Label labels[LABEL_CAP];
 size_t label_count;
 
+String unresolved_labels[LABEL_CAP];
+size_t unresolved_labels_pos[LABEL_CAP];
+size_t unresolved_labels_count = 0;
+
+
 #define INGORED_CHAR(CHAR) (CHAR == ' ' || CHAR == '\n' || CHAR == '\t')
+#define IS_NUM_CANDIDATE(TOKEN) (TOKEN.c_str && (TOKEN.c_str[0] == '-' || get_int(TOKEN.c_str[0]) >= 0))
 
 static inline int64_t find_char(String str, char c, size_t off_set){
 	for(size_t i = off_set; i < str.size; i+=1){
@@ -53,17 +60,28 @@ static inline int64_t find_next_insignificant_char(String str, size_t offset){
 static inline void add_label(Label label){
 	for(size_t i = 0; i < label_count; i += 1){
 		if(compare_str(labels[i].str, label.str)){
-			const char c = label.str.c_str[label.str.size];
-			label.str.c_str[label.str.size]= '\0';
-			printf("[WANRING] Redefinition Of '%s' Label\n", label.str.c_str);
-			label.str.c_str[label.str.size] = c;
+			if(label.def.as_str.c_str){
+				const char c = label.str.c_str[label.str.size];
+				label.str.c_str[label.str.size]= '\0';
+				printf("[WANRING] Redefinition Of '%s' Label\n", label.str.c_str);
+				label.str.c_str[label.str.size] = c;
+			}
 			labels[i].def = label.def;
 			return ;
 		}
 	}
 	if(label_count >= LABEL_CAP) throw_error(INTERNAL_ERROR_INTERNAL, "Label Capacity Overflow\n");
-
 	labels[label_count++] = label;
+}
+
+static inline void remove_label(String label_str){
+	for(size_t i = 0; i < label_count; i += 1){
+		if(compare_str(labels[i].str, label_str)){
+			labels[i] = labels[label_count - 1];
+			label_count -= 1;
+			return;
+		}
+	}
 }
 
 static inline Label resolve_label(String str, int required){
@@ -79,7 +97,7 @@ static inline Label resolve_label(String str, int required){
 	return (Label){
 		.str = (String){.c_str = NULL, .size = 0},
 		.def = (String){.c_str = NULL, .size = 0},
-		.is_int = 0
+		.type = 0
 	};
 }
 
@@ -224,7 +242,29 @@ static inline InternalInst parse_macro(String str_exp){
 			throw_error(ERROR_INVALID_SYNTAX, str_exp.c_str);
 		}
 		const String tkn2 = get_next_token(str_exp, tkn1.size + (tkn1.c_str - str_exp.c_str));
-		add_label((Label){.str = tkn1, .def = tkn2, .is_int = 0});
+		if(!tkn2.c_str){
+			str_exp.c_str[str_exp.size] = '\0';
+			printf("Expected A Definition: '%s'\n", str_exp.c_str);
+			throw_error(ERROR_INVALID_SYNTAX, str_exp.c_str);
+		}
+		if(get_int(tkn2.c_str[0]) > 0 || tkn2.c_str[0] == '-')
+			add_label((Label){.str = tkn1, .def.as_operand = get_operand(tkn2), .type = IS_OPERAND});
+		else
+			add_label((Label){.str = tkn1, .def.as_str = tkn2, .type = IS_EXPRESSION});
+		return (InternalInst){.inst = 0, .str = NULL};
+	}
+	if(compare_str(inst_str, MKSTR("#undef"))){
+		const String tkn1 = get_next_token(str_exp, inst_str.size + (inst_str.c_str - str_exp.c_str));
+		if(tkn1.c_str == NULL){
+			str_exp.c_str[str_exp.size] = '\0';
+			throw_error(ERROR_INVALID_SYNTAX, str_exp.c_str);
+		}
+		const String tkn2 = get_next_token(str_exp, tkn1.size + (tkn1.c_str - str_exp.c_str));
+		if(tkn2.c_str != NULL){
+			str_exp.c_str[str_exp.size] = '\0';
+			throw_error(ERROR_INVALID_SYNTAX, str_exp.c_str);
+		}
+		remove_label(tkn1);
 		return (InternalInst){.inst = 0, .str = NULL};
 	}
 	inst_str.c_str[inst_str.size] = '\0';
@@ -250,6 +290,8 @@ static inline Exp resolve_inst(String str_exp, int required){
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_DUMP_STACK};
 	if(compare_str(inst_str, MKSTR("gsp")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_GSP};
+	if(compare_str(inst_str, MKSTR("gso")))
+		return (Exp){.num_of_operands = 1, .instruction = INSTRUCTION_GSO};
 	if(compare_str(inst_str, MKSTR("ip")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_IP};
 
@@ -268,19 +310,35 @@ static inline Exp resolve_inst(String str_exp, int required){
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_DUP};
 	if(compare_str(inst_str, MKSTR("read")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_READ};
+	if(compare_str(inst_str, MKSTR("reads")))
+		return (Exp){.num_of_operands = 1, .instruction = INSTRUCTION_READS};
 	if(compare_str(inst_str, MKSTR("set")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_SET};
+	if(compare_str(inst_str, MKSTR("swap")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_SWAP};
+	if(compare_str(inst_str, MKSTR("bshift")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_BSHIFT};
 	
 	if(compare_str(inst_str, MKSTR("not")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_NOT};
 	if(compare_str(inst_str, MKSTR("eq")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_EQUAL};
+	if(compare_str(inst_str, MKSTR("eqsn")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_SNEQUAL};
+	if(compare_str(inst_str, MKSTR("eqf")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_FEQUAL};
 	if(compare_str(inst_str, MKSTR("jmp")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_JMP};
 	if(compare_str(inst_str, MKSTR("jmpf")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_JMP_IF};
 	if(compare_str(inst_str, MKSTR("jmpnf")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_JMP_IFNOT};
+	if(compare_str(inst_str, MKSTR("call")))
+		return (Exp){.num_of_operands = 1, .instruction = INSTRUCTION_CALL};
+	if(compare_str(inst_str, MKSTR("callf")))
+		return (Exp){.num_of_operands = 1, .instruction = INSTRUCTION_CALLIF};
+	if(compare_str(inst_str, MKSTR("callnf")))
+		return (Exp){.num_of_operands = 1, .instruction = INSTRUCTION_CALLNIF};
 	
 	if(compare_str(inst_str, MKSTR("plusi")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_PLUSI};
@@ -340,9 +398,26 @@ void parse(Program* program, S_file_t _file){
 	int operands_expected = 0;
 
 	for(size_t i = 0; i < file.size; ){
-		if(file.c_str[i] == '#'){
-			const int64_t exp_size = find_char(file, '\n', i);
-			const String exp_str = (String){.c_str = file.c_str + i, .size = (exp_size < 0)? file.size - i : exp_size};
+
+		if(file.c_str[i] == COMMENT_SYM){ 	// line comments...
+			int64_t skp = find_char(file, '\n', i);
+			if(skp < 0) break;
+			i += skp;
+			continue;
+		}
+
+		String token = get_next_token(file, i);
+		if(token.c_str == NULL) break;
+		i = token.size + (token.c_str - file.c_str);
+
+		if(token.c_str[0] == '#'){ 	// Macro Parsing...
+			const size_t offset = token.c_str - file.c_str;
+			int64_t exp_size = find_char(file, '\n', offset);
+			if(exp_size < 0) exp_size = file.size - offset;
+			const String exp_str = (String){
+				.c_str = token.c_str,
+				.size = exp_size
+			};
 			InternalInst iinst =  parse_macro(exp_str);
 
 			if(iinst.inst == INTERNAL_INSTRUCTION_INCLUDE){
@@ -352,27 +427,27 @@ void parse(Program* program, S_file_t _file){
 				parse(program, __file);
 				iinst.str.c_str[iinst.str.size] = c;
 			}
-			i += exp_size;
+			i = offset + exp_size;
 			continue;
 		}
-		if(file.c_str[i] == COMMENT_SYM){
-			int64_t skp = find_char(file, '\n', i);
-			if(skp < 0) break;
-			i += skp;
-			continue;
-		}
-		String token = get_next_token(file, i);
-		if(token.c_str == NULL) break;
-		//print_str(token); printf("\n");
-		i = token.size + (token.c_str - file.c_str);
+
 		if(operands_expected > 0){
 			Var operand;
-			if(token.c_str != NULL && get_int(token.c_str[0]) < 0 && token.c_str[0] != '-'){
-				const Label label = resolve_label(token, 1);
-				if(label.is_int)
-					operand.as_uint64 = label.def.as_uint64;
-				else 
-					operand = get_operand(resolve_label(token, 1).def.as_str);
+			if(token.c_str != NULL && (get_int(token.c_str[0]) < 0) && token.c_str[0] != '-'){
+				const Label label = resolve_label(token, 0);
+				if(label.type & IS_OPERAND){
+					operand = label.def.as_operand;
+				}
+				else if(IS_NUM_CANDIDATE(label.def.as_str)){
+					operand = get_operand(label.def.as_str);
+				}
+				else {
+					unresolved_labels[unresolved_labels_count] = token;
+					unresolved_labels_pos[unresolved_labels_count++] = program->size;
+					operands_expected -= 1;
+					program->size += sizeof(Var);
+					continue;
+				}
 			}
 			else operand = get_operand(token);
 			if(program->size + sizeof(Var) >= PROGRAM_CAP) throw_error(ERROR_PROGRAM_SIZE_OVERFLOW, "");
@@ -389,15 +464,15 @@ void parse(Program* program, S_file_t _file){
 					token.size -= 1;
 					i += nsc;
 				} else i += nsc + 1;
-				add_label((Label){.str = token, .def.as_uint64 = program->size, .is_int = 1});
+				add_label((Label){.str = token, .def.as_operand.as_uint64 = program->size, .type = IS_OPERAND | IS_POSTRESOLVABLE});
 				continue;
 			}
 			Exp expr = resolve_inst(token, 0);
 			if(expr.instruction == 0){
 				const Label label = resolve_label(token, 1);
-				if(label.is_int){
+				if(label.type & IS_OPERAND){
 					token.c_str[token.size] = '\0';
-					printf("Label '%s' Resolves To '%" PRIu64 "'\n", token.c_str, label.def.as_uint64);
+					printf("Label '%s' Resolves To '%" PRIu64 "'\n", token.c_str, label.def.as_operand.as_uint64);
 					throw_error(ERROR_INVALID_SYNTAX, token.c_str);
 				}
 				expr = resolve_inst(label.def.as_str, 1);
@@ -407,6 +482,21 @@ void parse(Program* program, S_file_t _file){
 			*(Inst*)(program->data + program->size) = expr.instruction;
 			program->size += sizeof(Inst);
 		}
+	}
+}
+
+void resolve_unresolved_labels(Program* program){
+
+	for(size_t i = 0; i < unresolved_labels_count; i+=1){
+		const String label_str = unresolved_labels[i];
+		const Label resolved_label = resolve_label(label_str, 1);
+		if(!(resolved_label.type & IS_OPERAND) || !(resolved_label.type & IS_POSTRESOLVABLE)){
+			label_str.c_str[label_str.size] = '\0';
+			throw_error(ERROR_UNRESOLVED_SYMBOL, label_str.c_str);
+		}
+
+		*(Var*)(program->data + unresolved_labels_pos[i]) = resolved_label.def.as_operand;
+
 	}
 }
 
@@ -449,6 +539,8 @@ int main(int argc, char** argv){
 	S_file_t file = read_file((String){.c_str = NULL, .size = 0}, argv[1]);
 
 	parse(&program, file);
+
+	resolve_unresolved_labels(&program);
 
 	write_program(program, (argc == 3)? argv[2] : "out.virtual");
 

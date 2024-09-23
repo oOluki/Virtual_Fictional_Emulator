@@ -1,0 +1,17 @@
+#define N 5
+
+
+push main ;;
+
+jmp ;;
+
+#include "std.hf"
+
+
+
+main:
+    push N
+    call story_factorial ;; n!
+    dump
+    halt
+ 

@@ -80,6 +80,10 @@ size_t eval_inst(size_t inst_address){
         vm.stack[vm.stack_size].as_uint64 = vm.stack_size - 1;
         vm.stack_size += 1;
         return sizeof(Inst);
+    case INSTRUCTION_GSO:
+        vm.stack[vm.stack_size].as_uint64 = vm.stack_size - 1 - (*(Var*)(vm.internal_memory + inst_address + sizeof(Inst))).as_uint64;
+        vm.stack_size += 1;
+        return sizeof(Inst) + sizeof(Var);
     case INSTRUCTION_IP:
         vm.stack[vm.stack_size++].as_uint64 = inst_address + sizeof(Inst);
         return sizeof(Inst);
@@ -102,11 +106,28 @@ size_t eval_inst(size_t inst_address){
         const size_t i = vm.stack[vm.stack_size - 1].as_uint64;
         vm.stack[vm.stack_size - 1] = vm.stack[i];
     } return sizeof(Inst);
+    case INSTRUCTION_READS:{
+        vm.stack[vm.stack_size++] =
+        vm.stack[vm.stack_size - 1 - (*(Var*)(vm.internal_memory + inst_address + sizeof(Inst))).as_uint64];
+    } return sizeof(Inst) + sizeof(Var);
     case INSTRUCTION_SET:
         vm.stack[vm.stack[vm.stack_size - 2].as_uint64] =
         vm.stack[vm.stack[vm.stack_size - 1].as_uint64];
         vm.stack_size -= 2;
         return sizeof(Inst);
+    case INSTRUCTION_SWAP:{
+        const Var dummy = vm.stack[vm.stack_size - 1];
+        vm.stack[vm.stack_size - 1] = vm.stack[vm.stack_size - 2];
+        vm.stack[vm.stack_size - 2] = dummy;
+    } return sizeof(Inst);
+    case INSTRUCTION_BSHIFT:{
+        const int64_t shift = vm.stack[vm.stack_size - 2].as_int64;
+        if(shift > 0)
+            vm.stack[vm.stack_size - 2].as_uint64 = vm.stack[vm.stack_size - 1].as_uint64 << shift;
+        else
+            vm.stack[vm.stack_size - 2].as_uint64 = vm.stack[vm.stack_size - 1].as_uint64 >> (-shift);
+        vm.stack_size -= 1;
+    } return sizeof(Inst);
     
     case INSTRUCTION_NOT:
         vm.stack[vm.stack_size - 1].as_uint64 = vm.stack[vm.stack_size - 1].as_uint64? 0 : 1;
@@ -114,6 +135,16 @@ size_t eval_inst(size_t inst_address){
     case INSTRUCTION_EQUAL:
         vm.stack[vm.stack_size - 2].as_uint64 =
         (vm.stack[vm.stack_size - 2].as_uint64 == vm.stack[vm.stack_size - 1].as_uint64)? 1 : 0;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_SNEQUAL:
+        vm.stack[vm.stack_size - 2].as_uint64 =
+        (vm.stack[vm.stack_size - 2].as_int64 == vm.stack[vm.stack_size - 1].as_int64)? 1 : 0;
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_FEQUAL:
+        vm.stack[vm.stack_size - 2].as_uint64 =
+        (vm.stack[vm.stack_size - 2].as_float64 == vm.stack[vm.stack_size - 1].as_float64)? 1 : 0;
         vm.stack_size -= 1;
         return sizeof(Inst);
     case INSTRUCTION_JMP:
@@ -135,6 +166,28 @@ size_t eval_inst(size_t inst_address){
         }
         vm.stack_size -= 2;
         return sizeof(Inst);
+    case INSTRUCTION_CALL:
+        vm.stack[vm.stack_size++].as_uint64 = vm.ip + sizeof(Inst) + sizeof(Var);
+        vm.ip = (*(Var*)(vm.internal_memory + inst_address + sizeof(Inst))).as_uint64;
+        return 0;
+    case INSTRUCTION_CALLIF:
+        vm.stack[vm.stack_size++].as_uint64 = vm.ip + sizeof(Inst) + sizeof(Var);
+        if(vm.stack[vm.stack_size - 1].as_uint64){
+            vm.ip = (*(Var*)(vm.internal_memory + inst_address + sizeof(Inst))).as_uint64;
+            vm.stack_size -= 1;
+            return 0;
+        }
+        vm.stack_size -= 1;
+        return sizeof(Inst) + sizeof(Var);
+    case INSTRUCTION_CALLNIF:
+        vm.stack[vm.stack_size++].as_uint64 = vm.ip + sizeof(Inst) + sizeof(Var);
+        if(vm.stack[vm.stack_size - 1].as_uint64 == 0){
+            vm.ip = (*(Var*)(vm.internal_memory + inst_address + sizeof(Inst))).as_uint64;
+            vm.stack_size -= 1;
+            return 0;
+        }
+        vm.stack_size -= 1;
+        return sizeof(Inst) + sizeof(Var);
 
     case INSTRUCTION_PLUSI:
         vm.stack[vm.stack_size - 2].as_int64 = vm.stack[vm.stack_size - 1].as_int64 + vm.stack[vm.stack_size - 2].as_int64;

@@ -1,4 +1,0 @@
-#include "std.hf"
-
-push 0.0f;
-halt;
