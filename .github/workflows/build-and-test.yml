@@ -21,6 +21,8 @@ jobs:
       id: strings
       shell: bash
       run: |
+        echo build dir = ${{ github.workspace }}/build
+        echo example dir = ${{ github.workspace }}/build/examples
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
         echo "examples-dir=${{ github.workspace }}/build/examples" >> "$GITHUB_OUTPUT"
 
@@ -28,8 +30,7 @@ jobs:
       run: |
         mkdir ${{ steps.strings.outputs.build-output-dir }}
 
-        cl ${{ github.workspace }}/compiler.c /Fe:${{ steps.strings.outputs.build-output-dir }}/fictiler
-        cl ${{ github.workspace }}/decompiler.c /Fe:${{ steps.strings.outputs.build-output-dir }}/devirtual
+        cl ${{ github.workspace }}/compiler.c /Fe:${{ steps.strings.outputs.build-output-dir }}/fiction
         cl ${{ github.workspace }}/virtual_emulator.c /Fe:${{ steps.strings.outputs.build-output-dir }}/vimulator
     
 
@@ -42,7 +43,8 @@ jobs:
         $files = Get-ChildItem -Path ..\examples\*.fiction
         foreach ($file in $files) {
             $filename_without_extension = [System.IO.Path]::GetFileNameWithoutExtension($file.FullName)
-            .\fictiler $file.FullName "examples/$filename_without_extension.virtual"
+            .\fiction $file.FullName "examples/$filename_without_extension.virtual"
+            .\vimulator "examples/$filename_without_extension.virtual"
         }
       # keeping this here just in case (doesn't work though)
       #shell: cmd
@@ -107,8 +109,7 @@ jobs:
     - name: Build (Linux and MacOS)
       run: |
         mkdir ${{ steps.strings.outputs.build-output-dir }}
-        ${{ matrix.c_compiler }} ${{ github.workspace }}/compiler.c -o ${{ steps.strings.outputs.build-output-dir }}/fictiler
-        ${{ matrix.c_compiler }} ${{ github.workspace }}/decompiler.c  -o ${{ steps.strings.outputs.build-output-dir }}/devirtual
+        ${{ matrix.c_compiler }} ${{ github.workspace }}/compiler.c -o ${{ steps.strings.outputs.build-output-dir }}/fiction
         ${{ matrix.c_compiler }} ${{ github.workspace }}/virtual_emulator.c -o ${{ steps.strings.outputs.build-output-dir }}/vimulator
       
     - name: Test (Linux and MacOS)
@@ -122,7 +123,8 @@ jobs:
           extension="${file##*.}"
 
           if [[ "$extension" == "fiction" ]]; then
-            ./fictiler "../examples/$file" "examples/$(basename "$filename").virtual"
+            ./fiction "../examples/$file" "examples/$(basename "$filename").virtual"
+            ./vimulator "examples/$(basename "$filename").virtual"
           fi
 
         done
