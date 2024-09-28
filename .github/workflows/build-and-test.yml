@@ -42,9 +42,11 @@ jobs:
 
         $files = Get-ChildItem -Path ..\examples\*.fiction
         foreach ($file in $files) {
-            $filename_without_extension = [System.IO.Path]::GetFileNameWithoutExtension($file.FullName)
-            .\fiction $file.FullName "examples/$filename_without_extension.virtual"
-            .\vimulator "examples/$filename_without_extension.virtual"
+            if ($file.Extension -eq ".fiction") {
+              $filename_without_extension = [System.IO.Path]::GetFileNameWithoutExtension($file.FullName)
+              .\fiction $file.FullName "examples/$filename_without_extension.virtual"
+              .\vimulator "examples/$filename_without_extension.virtual"
+            }            
         }
       # keeping this here just in case (doesn't work though)
       #shell: cmd
@@ -125,6 +127,7 @@ jobs:
           if [[ "$extension" == "fiction" ]]; then
             ./fiction "../examples/$file" "examples/$(basename "$filename").virtual"
             ./vimulator "examples/$(basename "$filename").virtual"
+            
           fi
 
         done
