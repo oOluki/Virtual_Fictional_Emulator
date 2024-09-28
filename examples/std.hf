@@ -34,6 +34,7 @@ story_factorial:
     push 1
     eq
     push story_internal_factorial_loop
+    dump
     jmpnf                                 ;; if n != 1 jump to loop
 
     pop
