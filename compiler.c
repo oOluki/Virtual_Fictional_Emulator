@@ -179,28 +179,35 @@ uint64_t u64_pow(uint64_t base, uint64_t exponent){
 }
 
 static inline Var get_operand(String str){
+	if(str.size == 0){
+		throw_error(ERROR_INVALID_OPERAND, "");
+	}
+
 	uint64_t aux = 0;
-
 	uint64_t exp_factor = 0;
+	uint64_t ten_to_n = 1;
 	int is_float = 0;
-	int is_negative = str.c_str[0] == '-';
+	int is_negative = (str.c_str[0] == '-');
+	size_t i = str.size - 1;
 
-	for(size_t i = is_negative; i < str.size; i+=1){
-		if(str.c_str[i] == 'f'){
-			if(i != str.size - 1){
-				str.c_str[str.size] = '\0';
-				throw_error(ERROR_INVALID_OPERAND, str.c_str);
-			}
-			is_float = 1;
-			continue;
+	if(str.c_str[i] == 'f'){
+		if(i == 0 || i > str.size){
+			throw_error(ERROR_INVALID_SYNTAX, "f");
 		}
+		i -= 1;
+		is_float = 1;
+		str.size -= 1;
+	}
+
+	for(; i != 0; i-=1){
+		
 		if(str.c_str[i] == '.'){
 			if(exp_factor){
 				str.c_str[str.size] = '\0';
 				throw_error(ERROR_INVALID_OPERAND, str.c_str);
 			}
 			is_float = 1;
-			exp_factor = str.size - i;
+			exp_factor = str.size - i - 1;
 			continue;
 		}
 		const int i_n_t_ = get_int(str.c_str[i]);
@@ -208,12 +215,24 @@ static inline Var get_operand(String str){
 			str.c_str[str.size] = '\0';
 			throw_error(ERROR_INVALID_SYNTAX, str.c_str);
 		}
-		aux += (uint64_t)(i_n_t_) * u64_pow(10, (uint64_t)(str.size - i - 1));
+		aux += (uint64_t)(i_n_t_) * ten_to_n;
+		ten_to_n *= 10;
 	}
+
+	const int i_n_t_ = get_int(str.c_str[i]);
+	if(i_n_t_ < 0){
+		str.c_str[str.size] = '\0';
+		throw_error(ERROR_INVALID_SYNTAX, str.c_str);
+	}
+	aux += (uint64_t)(i_n_t_) * ten_to_n;
+
 	Var output;
-	if(is_float == 1) output.as_float64 = (double)(aux / (double)(u64_pow(10, exp_factor)));
-	else if(is_negative == 1) output.as_int64 = -(int64_t)(aux);
-	else output.as_uint64 = aux;
+	if(is_float == 1){
+		if(is_negative == 0) output.as_float64 = (double)(aux / (double)(u64_pow(10, exp_factor)));
+		else output.as_float64 = -(double)(aux / (double)(u64_pow(10, exp_factor)));
+	}
+	else if(is_negative == 0) output.as_uint64 = aux;
+	else output.as_int64 = -(int64_t)(aux);
 
 	return output;
 }

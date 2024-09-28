@@ -1,8 +1,19 @@
 ;; testing multiplatform behavior
 
-push 1
-push 1.595115454545f
-swap
+push main
+
 dump
 
+jmp
 
+test:
+    push 1
+    push 1.595115454545f
+    swap
+    dump
+    halt
+
+
+main:
+
+call test
