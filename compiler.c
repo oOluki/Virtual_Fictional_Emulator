@@ -522,11 +522,71 @@ void write_program(const Program program, const char* output_path){
 
 int main(int argc, char** argv){
 
-	if(argc < 2){
-		printf("[HELP] Usage: ./fictiler <path_to_input_file> <optional: path_to_output_executable>\n");
-		printf("[ERROR] Expected At Least One Argument, Got NONE Instead\n");
+	if(argc < 2 || argc > 3){
+		fprintf(stderr, "[ERROR] Expected 1 to 2 Arguments, Got %i Instead\n", argc);
+		printf("Use: ./fiction --help To Display A Help Message\n");
 		return ERROR_INVALID_USAGE;
 	}
+
+	if(argc == 2 && compare_str((String){.c_str = argv[1],.size = 7}, MKSTR("--help"))){
+		printf(
+			"[HELP] Usage:\n"
+			"\tTo compile use: ./fiction <path_to_input_file> <optional: path_to_output_executable>\n"
+			"\tTo de-compile use ./fiction <path_to_executable> -r\n"
+		);
+		return 0;
+	}
+
+	// if decompile_path_position < 0 compile, otherwise decompile binary at argv[decompile_path_position]
+	int decompile_path_position = -1;
+	const char decompile_flag = 'r';
+
+	if(argc == 3 && argv[1][0] == '-'){
+		if(argv[1][1] == decompile_flag){
+			decompile_path_position = 2;
+		} else{
+			fprintf(stderr, "[ERROR] Unknown Flag '%c'\n", argv[1][1]);
+			return ERROR_INVALID_USAGE;
+		}
+	} else if(argc == 3 && argv[2][0] == '-'){
+		if(argv[2][1] == decompile_flag){
+			decompile_path_position = 1;
+		} else{
+			fprintf(stderr, "[ERROR] Unknown Flag '%c'\n", argv[2][1]);
+			return ERROR_INVALID_USAGE;
+		}
+	}
+
+
+	if(decompile_path_position > 0){	// decompiling =================
+		FILE* file = fopen(argv[decompile_path_position], "rb");
+
+		if(!file){
+			printf("[ERROR] Invalid File Path '%s'\n", argv[1]);
+			exit(ERROR_INVALID_FILE_PATH);
+		}
+		unsigned char pdata[1024];
+
+		Program program = (Program){.data = pdata, .size = 0, .capacity = 1024};
+
+		for(; !feof(file);){
+			program.size += SIZEOF_CHUNK * fread(program.data + program.size, SIZEOF_CHUNK, program.capacity / SIZEOF_CHUNK, file);
+			if(program.size >= program.capacity){
+				resize_stream(&program, 2 * program.capacity);
+			}
+		}
+
+		fclose(file);
+
+		printf("size of program: %zu bytes\n\n", program.size);
+
+		for(size_t i = 0; i < program.size; i += print_inst(program, i));
+
+
+		return 0;
+	}
+
+	// compile ===========================================
 
 	unsigned char program_data[PROGRAM_CAP];
 	unsigned char stream_data[MAX_COMP_STC_STRM_MEMCAP];
@@ -543,6 +603,4 @@ int main(int argc, char** argv){
 	resolve_unresolved_labels(&program);
 
 	write_program(program, (argc == 3)? argv[2] : "out.virtual");
-
-	return 0;
 }
