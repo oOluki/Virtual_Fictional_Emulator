@@ -1,17 +1,8 @@
 ;; testing multiplatform behavior
 
-
 push 1
-push 1.0f
-dup
-push 0.0f
-
-reads 1
-dup
-reads 2
-dup
-smallerf
-
+push 1.595115454545f
+swap
 dump
-halt
+
 
