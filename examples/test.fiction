@@ -1,6 +1,6 @@
         ;; =============== break down the double representation according to the IEEE 754 standard =============
-        ;;                                      [DOES NOT WORK PROPERLY YET]
-#define TARGET 0.5f      ;; the target float
+        
+#define TARGET -65.25f      ;; the target float
 
 main:
 
@@ -16,7 +16,7 @@ main:
 
     swap                      ;; getting the exponent as_int64
     dup
-    push 4095
+    push 2047
     push 52
     bshift 
     and
@@ -26,29 +26,29 @@ main:
     minusu
 
     swap                    ;; getting the Mantissa as_float64, read the output in base 2, for example, 1.25 is 1.01 in binary
-    push 1                  ;; writting 2^53 - 1 by (1 << 53) - 1
-    push 53
+    push 1                  ;; writting 2^52 - 1 by (1 << 52) - 1
+    push 52
     bshift
     push 1
     minusu
     and
 
     push 1                   ;; placing the implied 1 bit
-    push 53
+    push 52
     bshift
     or
     cuf                      ;; cast the result to a float
     push 1                   
-    push 53
+    push 52
     bshift
     cuf
-    divf                     ;; divide by 2^53 to get the result in a more readable form
+    divf                     ;; divide by 2^52 to get the result in a more readable form
 
 
 
 
-    dump
-    halt
+    dump                       ;; output should be 1 (negative), 6 (exponent), 1.01953125 (Mantissa = 1.00000101 in binary)
+    halt                       ;; 1.00000101 * 10^6 = 1000001.01 = 65.25 in base 10
 
 
 

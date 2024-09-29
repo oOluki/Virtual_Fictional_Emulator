@@ -280,22 +280,22 @@ size_t eval_inst(size_t inst_address){
         return sizeof(Inst);
     
     case INSTRUCTION_CAST_I2U:
-        vm.stack[vm.stack_size - 1].as_uint64 = (int64_t)(vm.stack[vm.stack_size - 1].as_int64);
+        vm.stack[vm.stack_size - 1].as_uint64 = (uint64_t)(vm.stack[vm.stack_size - 1].as_int64);
         return sizeof(Inst);
     case INSTRUCTION_CAST_I2F:
-        vm.stack[vm.stack_size - 1].as_float64 = (int64_t)(vm.stack[vm.stack_size - 1].as_int64);
+        vm.stack[vm.stack_size - 1].as_float64 = (double)(vm.stack[vm.stack_size - 1].as_int64);
         return sizeof(Inst);
     case INSTRUCTION_CAST_U2I:
         vm.stack[vm.stack_size - 1].as_int64 = (int64_t)(vm.stack[vm.stack_size - 1].as_uint64);
         return sizeof(Inst);
     case INSTRUCTION_CAST_U2F:
-        vm.stack[vm.stack_size - 1].as_float64 = (int64_t)(vm.stack[vm.stack_size - 1].as_uint64);
+        vm.stack[vm.stack_size - 1].as_float64 = (double)(vm.stack[vm.stack_size - 1].as_uint64);
         return sizeof(Inst);
     case INSTRUCTION_CAST_F2I:
         vm.stack[vm.stack_size - 1].as_int64 = (int64_t)(vm.stack[vm.stack_size - 1].as_float64);
         return sizeof(Inst);
     case INSTRUCTION_CAST_F2U:
-        vm.stack[vm.stack_size - 1].as_uint64 = (int64_t)(vm.stack[vm.stack_size - 1].as_float64);
+        vm.stack[vm.stack_size - 1].as_uint64 = (uint64_t)(vm.stack[vm.stack_size - 1].as_float64);
         return sizeof(Inst);
     
     case INSTRUCTION_AND:
@@ -396,6 +396,8 @@ int main(int argc, char** argv){
         printf(
             "[DEBUG] enter:\n"
             "'e' to exit\n"
+            "'c' to clear the screen; "
+            "'h' to display this message\n"
             "'s' to display stack; "
             "'i' to display instruction; "
             "'n<count>' to evaluate the next <count> instructions. if <count> = -1: evaluate to the end of the program\n"
@@ -411,6 +413,26 @@ int main(int argc, char** argv){
             // evaluating
             switch (c)
             {
+            case 'h':
+                printf(
+                    "[DEBUG] enter:\n"
+                    "'e' to exit\n"
+                    "'c' to clear the screen; "
+                    "'h' to display this message\n"
+                    "'s' to display stack; "
+                    "'i' to display instruction; "
+                    "'n<count>' to evaluate the next <count> instructions. if <count> = -1: evaluate to the end of the program\n"
+                );
+                break;
+            case 'c':
+
+                #ifdef _WIN32
+                    system("cls");
+                #else 
+                    system("clear");
+                #endif
+
+                break;
             case 's':
                 printf("stack:\n");
                 for(size_t i = 0; i < vm.stack_size; i+=1){
