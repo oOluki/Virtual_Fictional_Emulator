@@ -11,7 +11,6 @@ jmp ;;
 
 main:
     push N
-    dump
     call story_factorial ;; n!
     dump
     halt

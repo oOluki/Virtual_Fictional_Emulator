@@ -16,7 +16,6 @@ story_factorial:
     push story_internal_factorial_case0
     jmpf
     dup
-    dump
 
     story_internal_factorial_loop: ;;;; stack at this point ret, n!, n
     dup
@@ -24,18 +23,19 @@ story_factorial:
     minusu
     gso 1
     gso 1
+    dump
     set
     reads 2
     mulu
     gso 2
     gso 1
     set
+    dump
     pop
     dup
     push 1
     eq
     push story_internal_factorial_loop
-    dump
     jmpnf                                 ;; if n != 1 jump to loop
 
     pop
