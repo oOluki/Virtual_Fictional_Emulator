@@ -349,6 +349,9 @@ int main(int argc, char** argv){
         do{
             // getting input
             char c = fgetc(stdin);
+
+            if(feof(stdin)) break;
+
             if(c == '\n') continue;
             size_t stride = 0;
             // evaluating

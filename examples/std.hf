@@ -16,6 +16,7 @@ story_factorial:
     push story_internal_factorial_case0
     jmpf
     dup
+    dump
 
     story_internal_factorial_loop: ;;;; stack at this point ret, n!, n
     dup
