@@ -233,6 +233,14 @@ static inline Var get_operand(String str){
 		ten_to_n *= 10;
 	}
 
+	Var output;
+
+	if(is_negative != 0){
+		if(is_float) output.as_float64 = -(double)(aux / (double)(u64_pow(10, exp_factor)));
+		else output.as_int64 = -(int64_t)(aux);
+		return output;
+	}
+
 	const int i_n_t_ = get_int(str.c_str[i]);
 	if(i_n_t_ < 0){
 		str.c_str[str.size] = '\0';
@@ -240,13 +248,8 @@ static inline Var get_operand(String str){
 	}
 	aux += (uint64_t)(i_n_t_) * ten_to_n;
 
-	Var output;
-	if(is_float == 1){
-		if(is_negative == 0) output.as_float64 = (double)(aux / (double)(u64_pow(10, exp_factor)));
-		else output.as_float64 = -(double)(aux / (double)(u64_pow(10, exp_factor)));
-	}
-	else if(is_negative == 0) output.as_uint64 = aux;
-	else output.as_int64 = -(int64_t)(aux);
+	if(is_float == 1) output.as_float64 = (double)(aux / (double)(u64_pow(10, exp_factor)));
+	else output.as_uint64 = aux;
 
 	return output;
 }
@@ -411,6 +414,31 @@ static inline Exp resolve_inst(String str_exp, int required){
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_SMALLERF};
 	if(compare_str(inst_str, MKSTR("biggerf")))
 		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_BIGGERF};
+	
+	if(compare_str(inst_str, MKSTR("ciu")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_CAST_I2U};
+	if(compare_str(inst_str, MKSTR("cif")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_CAST_I2F};
+	if(compare_str(inst_str, MKSTR("cui")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_CAST_U2I};
+	if(compare_str(inst_str, MKSTR("cuf")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_CAST_U2F};
+	if(compare_str(inst_str, MKSTR("cfi")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_CAST_F2I};
+	if(compare_str(inst_str, MKSTR("cfu")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_CAST_F2U};
+
+	if(compare_str(inst_str, MKSTR("and")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_AND};
+	if(compare_str(inst_str, MKSTR("or")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_OR};
+	if(compare_str(inst_str, MKSTR("xor")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_XOR};
+	if(compare_str(inst_str, MKSTR("nand")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_NAND};
+	if(compare_str(inst_str, MKSTR("neg")))
+		return (Exp){.num_of_operands = 0, .instruction = INSTRUCTION_NEGATE};
+	
 	
 
 	if(required){

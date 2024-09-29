@@ -147,6 +147,30 @@ INSTRUCTION_DIVF,
 INSTRUCTION_SMALLERF,
 INSTRUCTION_BIGGERF,
 
+INSTRUCTION_CAST_I2U,
+INSTRUCTION_CAST_I2F,
+INSTRUCTION_CAST_U2I,
+INSTRUCTION_CAST_U2F,
+INSTRUCTION_CAST_F2I,
+INSTRUCTION_CAST_F2U,
+
+// performs bitwise AND operation between the last two elements on the stack,
+// consumes them, and pushes the result to the top of the stack
+INSTRUCTION_AND,
+// performs bitwise OR operation between the last two elements on the stack,
+// consumes them, and pushes the result to the top of the stack
+INSTRUCTION_OR,
+// performs bitwise XOR operation between the last two elements on the stack,
+// consumes them, and pushes the result to the top of the stack
+INSTRUCTION_XOR,
+// performs bitwise NAND operation between the last two elements on the stack,
+// consumes them, and pushes the result to the top of the stack
+INSTRUCTION_NAND,
+// takes the element on top of the stack and overwrites it with an element with
+// its bits negated (0s become 1s and vice versa), basically ~x
+INSTRUCTION_NEGATE,
+
+
 DEBUG_INSTRUCTION_BREAK,
 
 INTERNAL_INSTRUCTION_INCLUDE,
@@ -457,6 +481,41 @@ size_t print_inst(const Program program, size_t inst_address){
         return sizeof(Inst);
     case INSTRUCTION_BIGGERF:
         printf("biggerf\n");
+        return sizeof(Inst);
+    
+    case INSTRUCTION_CAST_I2U:
+        printf("ciu\n");
+        return sizeof(Inst);
+    case INSTRUCTION_CAST_I2F:
+        printf("cif\n");
+        return sizeof(Inst);
+    case INSTRUCTION_CAST_U2I:
+        printf("cui\n");
+        return sizeof(Inst);
+    case INSTRUCTION_CAST_U2F:
+        printf("cuf\n");
+        return sizeof(Inst);
+    case INSTRUCTION_CAST_F2I:
+        printf("cfi\n");
+        return sizeof(Inst);
+    case INSTRUCTION_CAST_F2U:
+        printf("cfu\n");
+        return sizeof(Inst);
+
+    case INSTRUCTION_AND:
+        printf("and\n");
+        return sizeof(Inst);
+    case INSTRUCTION_OR:
+        printf("or\n");
+        return sizeof(Inst);
+    case INSTRUCTION_XOR:
+        printf("xor\n");
+        return sizeof(Inst);
+    case INSTRUCTION_NAND:
+        printf("nand\n");
+        return sizeof(Inst);
+    case INSTRUCTION_NEGATE:
+        printf("neg\n");
         return sizeof(Inst);
 
     default:

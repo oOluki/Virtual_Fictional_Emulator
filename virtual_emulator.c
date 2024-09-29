@@ -136,11 +136,11 @@ size_t eval_inst(size_t inst_address){
         vm.stack[vm.stack_size - 2] = dummy;
     } return sizeof(Inst);
     case INSTRUCTION_BSHIFT:{
-        const int64_t shift = vm.stack[vm.stack_size - 2].as_int64;
+        const int64_t shift = vm.stack[vm.stack_size - 1].as_int64;
         if(shift > 0)
-            vm.stack[vm.stack_size - 2].as_uint64 = vm.stack[vm.stack_size - 1].as_uint64 << shift;
+            vm.stack[vm.stack_size - 2].as_uint64 = vm.stack[vm.stack_size - 2].as_uint64 << shift;
         else
-            vm.stack[vm.stack_size - 2].as_uint64 = vm.stack[vm.stack_size - 1].as_uint64 >> (-shift);
+            vm.stack[vm.stack_size - 2].as_uint64 = vm.stack[vm.stack_size - 2].as_uint64 >> (-shift);
         vm.stack_size -= 1;
     } return sizeof(Inst);
     
@@ -277,6 +277,45 @@ size_t eval_inst(size_t inst_address){
     case INSTRUCTION_BIGGERF:
         vm.stack[vm.stack_size - 2].as_uint64 = (vm.stack[vm.stack_size - 2].as_float64 > vm.stack[vm.stack_size - 1].as_float64);
         vm.stack_size -= 1;
+        return sizeof(Inst);
+    
+    case INSTRUCTION_CAST_I2U:
+        vm.stack[vm.stack_size - 1].as_uint64 = (int64_t)(vm.stack[vm.stack_size - 1].as_int64);
+        return sizeof(Inst);
+    case INSTRUCTION_CAST_I2F:
+        vm.stack[vm.stack_size - 1].as_float64 = (int64_t)(vm.stack[vm.stack_size - 1].as_int64);
+        return sizeof(Inst);
+    case INSTRUCTION_CAST_U2I:
+        vm.stack[vm.stack_size - 1].as_int64 = (int64_t)(vm.stack[vm.stack_size - 1].as_uint64);
+        return sizeof(Inst);
+    case INSTRUCTION_CAST_U2F:
+        vm.stack[vm.stack_size - 1].as_float64 = (int64_t)(vm.stack[vm.stack_size - 1].as_uint64);
+        return sizeof(Inst);
+    case INSTRUCTION_CAST_F2I:
+        vm.stack[vm.stack_size - 1].as_int64 = (int64_t)(vm.stack[vm.stack_size - 1].as_float64);
+        return sizeof(Inst);
+    case INSTRUCTION_CAST_F2U:
+        vm.stack[vm.stack_size - 1].as_uint64 = (int64_t)(vm.stack[vm.stack_size - 1].as_float64);
+        return sizeof(Inst);
+    
+    case INSTRUCTION_AND:
+        vm.stack[vm.stack_size - 2].as_uint64 = (vm.stack[vm.stack_size - 2].as_uint64 & vm.stack[vm.stack_size - 1].as_uint64);
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_OR:
+        vm.stack[vm.stack_size - 2].as_uint64 = (vm.stack[vm.stack_size - 2].as_uint64 | vm.stack[vm.stack_size - 1].as_uint64);
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_XOR:
+        vm.stack[vm.stack_size - 2].as_uint64 = (vm.stack[vm.stack_size - 2].as_uint64 ^ vm.stack[vm.stack_size - 1].as_uint64);
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_NAND:
+        vm.stack[vm.stack_size - 2].as_uint64 = ~(vm.stack[vm.stack_size - 2].as_uint64 & vm.stack[vm.stack_size - 1].as_uint64);
+        vm.stack_size -= 1;
+        return sizeof(Inst);
+    case INSTRUCTION_NEGATE:
+        vm.stack[vm.stack_size - 1].as_uint64 = ~(vm.stack[vm.stack_size - 1].as_uint64);
         return sizeof(Inst);
 
     default:
