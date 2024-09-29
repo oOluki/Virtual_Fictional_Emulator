@@ -44,8 +44,9 @@ jobs:
         foreach ($file in $files) {
             if ($file.Extension -eq ".fiction") {
               $filename_without_extension = [System.IO.Path]::GetFileNameWithoutExtension($file.FullName)
-              .\fiction $file.FullName "examples/$filename_without_extension.virtual"
-              .\vimulator "examples/$filename_without_extension.virtual"
+              echo $filename_without_extension example
+              .\fiction $file.FullName "examples/$filename_without_extension.bin"
+              .\vimulator "examples/$filename_without_extension.bin"
             }            
         }
       # keeping this here just in case (doesn't work though)
@@ -125,6 +126,7 @@ jobs:
           extension="${file##*.}"
 
           if [[ "$extension" == "fiction" ]]; then
+            echo "$filename" example
             ./fiction "../examples/$file" "examples/$(basename "$filename").virtual"
             ./vimulator "examples/$(basename "$filename").virtual"
             
