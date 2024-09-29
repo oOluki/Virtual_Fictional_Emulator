@@ -1,10 +1,6 @@
 #define N 5
 
 
-push main ;;
-
-jmp ;;
-
 #include "std.hf"
 
 

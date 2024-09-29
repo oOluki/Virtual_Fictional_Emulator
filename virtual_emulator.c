@@ -32,7 +32,21 @@ void load_program(const char* path, Vm_flags flags){
 	}
 
     Stream stream = (Stream){.data = malloc(1024), .size = 0, .capacity = 1024};
-    size_t inst_count = 0;
+
+    unsigned char meta[32];
+
+	if(fread(meta, 4 * sizeof(char) + 2 * sizeof(uint64_t), 1, file) != 1){
+		throw_error(ERROR_INVALID_EXECUTABLE, NULL);
+	}
+
+	if((meta[0] != 'v') || (meta[1] != 'f') || (meta[2] != 'e') || (meta[3] != ':')){
+		fprintf(stderr, "[ERROR] Incorrect Magic Number\n");
+    	throw_error(ERROR_INVALID_EXECUTABLE, NULL);
+	}
+
+	const uint64_t program_start_position = *(uint64_t*)(meta + 4 * sizeof(char));
+    const uint64_t entry_point = *(uint64_t*)(meta + 4 * sizeof(char) + sizeof(uint64_t));
+
 
     for(; !feof(file);){
         stream.size += (SIZEOF_CHUNK) * fread(stream.data + stream.size, SIZEOF_CHUNK, stream.capacity / SIZEOF_CHUNK, file);
@@ -43,16 +57,16 @@ void load_program(const char* path, Vm_flags flags){
 
     fclose(file);
 
-    vm.internal_memory = (unsigned char*)malloc(stream.size + STACK_CAP);
-    vm.internal_memory_size = stream.size;
+    vm.internal_memory = (unsigned char*)malloc(stream.size + STACK_CAP - program_start_position);
+    vm.internal_memory_size = stream.size - program_start_position;
     
-    vm.stack = (Var*)(vm.internal_memory + stream.size);
+    vm.stack = (Var*)(vm.internal_memory + stream.size - program_start_position);
     vm.stack_size = 0;
 
-    vm.ip = 0;
+    vm.ip = entry_point;
 
     for(size_t i = 0; i < vm.internal_memory_size; i += 1){
-        vm.internal_memory[i] = stream.data[i];
+        vm.internal_memory[i] = stream.data[i + program_start_position];
     }
 
     free(stream.data);
@@ -413,7 +427,7 @@ int main(int argc, char** argv){
     }
     else {
         for(
-        vm.ip = 0;
+        ;
         vm.ip < vm.internal_memory_size;
         vm.ip += eval_inst(vm.ip)
         );

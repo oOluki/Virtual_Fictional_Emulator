@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
-
+#include <string.h>
 
 enum Errors{
 ERROR_NONE = 0,
@@ -16,8 +16,12 @@ ERROR_INVALID_OPERAND,
 ERROR_INVALID_OPERAND_COUNT,
 ERROR_INVALID_SYNTAX,
 ERROR_UNRESOLVED_SYMBOL,
+ERROR_MULTIPLE_ENTRYPOINTS,
+ERROR_INVALID_ENTRYPOINT,
+ERROR_MISSING_ENTRYPOINT,
 
 ERROR_PROGRAM_SIZE_OVERFLOW,
+ERROR_INVALID_EXECUTABLE,
 
 // for internal errors
 INTERNAL_ERROR_INTERNAL,
@@ -53,9 +57,9 @@ void resize_stream(Stream* stream, size_t new_capacity){
 
     const size_t range = (stream->size < new_capacity)? stream->size : new_capacity;
 
-    for(size_t i = 0; i < range; i+=1){
-        stream->data[i] = old_data[i];
-    }
+    memcpy(stream->data, old_data, range);
+
+    free(old_data);
 
     stream->capacity = new_capacity;
 }
@@ -279,11 +283,23 @@ void throw_error(int error, const char* aux){
     case ERROR_UNRESOLVED_SYMBOL:
         printf("[ERROR] Unresolved Symbol '%s'\n", aux);
         break;
+    case ERROR_MULTIPLE_ENTRYPOINTS:
+        printf("[ERROR] Multiple Entry Point, There Should Only Be One Entry Point 'main'\n");
+        break;
+    case ERROR_INVALID_ENTRYPOINT:
+        printf("[ERROR] Invalid Entry Point, '%s'\n", aux);
+        break;
+    case ERROR_MISSING_ENTRYPOINT:
+        printf("[ERROR] Missing Entry Point\n");
+        break;
     
     case ERROR_PROGRAM_SIZE_OVERFLOW:
         printf("[ERROR] Program Size Overflow, Maximum Program Size Is %zu\n", (size_t)PROGRAM_CAP);
         break;
-    
+    case ERROR_INVALID_EXECUTABLE:
+        printf("[ERROR] Invalid Or Corrupted Executable\n");
+        break;
+
     case INTERNAL_ERROR_INTERNAL:
         printf("[INTERNAL ERROR] %s\n", aux);
         break;

@@ -15,10 +15,13 @@ Stream stream;
 Label labels[LABEL_CAP];
 size_t label_count;
 
-String unresolved_labels[LABEL_CAP];
-size_t unresolved_labels_pos[LABEL_CAP];
-size_t unresolved_labels_count = 0;
+enum Flags{
+CFLAG_NONE = 0,
+CFLAG_ACTIVE = 1,
+CFLAG_MAINFOUND = 1 << 2,
+} flags;
 
+uint64_t entry_point_position = 0;
 
 #define INGORED_CHAR(CHAR) (CHAR == ' ' || CHAR == '\n' || CHAR == '\t')
 #define IS_NUM_CANDIDATE(TOKEN) (TOKEN.c_str && (TOKEN.c_str[0] == '-' || get_int(TOKEN.c_str[0]) >= 0))
@@ -58,6 +61,17 @@ static inline int64_t find_next_insignificant_char(String str, size_t offset){
 }
 
 static inline void add_label(Label label){
+	if(compare_str(label.str, MKSTR("main"))){
+		if(flags & CFLAG_MAINFOUND){
+			throw_error(ERROR_MULTIPLE_ENTRYPOINTS, NULL);
+		}
+		if(label.type != IS_OPERAND){
+			label.def.as_str.c_str[label.def.as_str.size] = '\0';
+			throw_error(ERROR_INVALID_ENTRYPOINT, label.def.as_str.c_str);
+		}
+		flags |= CFLAG_MAINFOUND;
+		entry_point_position = label.def.as_operand.as_uint64;
+	}
 	for(size_t i = 0; i < label_count; i += 1){
 		if(compare_str(labels[i].str, label.str)){
 			if(label.def.as_str.c_str){
@@ -461,11 +475,8 @@ void parse(Program* program, S_file_t _file){
 					operand = get_operand(label.def.as_str);
 				}
 				else {
-					unresolved_labels[unresolved_labels_count] = token;
-					unresolved_labels_pos[unresolved_labels_count++] = program->size;
-					operands_expected -= 1;
-					program->size += sizeof(Var);
-					continue;
+					token.c_str[token.size] = '\0';
+					throw_error(ERROR_INVALID_OPERAND, token.c_str);
 				}
 			}
 			else operand = get_operand(token);
@@ -483,7 +494,7 @@ void parse(Program* program, S_file_t _file){
 					token.size -= 1;
 					i += nsc;
 				} else i += nsc + 1;
-				add_label((Label){.str = token, .def.as_operand.as_uint64 = program->size, .type = IS_OPERAND | IS_POSTRESOLVABLE});
+				add_label((Label){.str = token, .def.as_operand.as_uint64 = program->size, .type = IS_OPERAND});
 				continue;
 			}
 			Exp expr = resolve_inst(token, 0);
@@ -491,7 +502,6 @@ void parse(Program* program, S_file_t _file){
 				const Label label = resolve_label(token, 1);
 				if(label.type & IS_OPERAND){
 					token.c_str[token.size] = '\0';
-					printf("Label '%s' Resolves To '%" PRIu64 "'\n", token.c_str, label.def.as_operand.as_uint64);
 					throw_error(ERROR_INVALID_SYNTAX, token.c_str);
 				}
 				expr = resolve_inst(label.def.as_str, 1);
@@ -504,20 +514,6 @@ void parse(Program* program, S_file_t _file){
 	}
 }
 
-void resolve_unresolved_labels(Program* program){
-
-	for(size_t i = 0; i < unresolved_labels_count; i+=1){
-		const String label_str = unresolved_labels[i];
-		const Label resolved_label = resolve_label(label_str, 1);
-		if(!(resolved_label.type & IS_OPERAND) || !(resolved_label.type & IS_POSTRESOLVABLE)){
-			label_str.c_str[label_str.size] = '\0';
-			throw_error(ERROR_UNRESOLVED_SYMBOL, label_str.c_str);
-		}
-
-		*(Var*)(program->data + unresolved_labels_pos[i]) = resolved_label.def.as_operand;
-
-	}
-}
 
 void write_program(const Program program, const char* output_path){
 	FILE* file = fopen(output_path, "wb");
@@ -526,12 +522,35 @@ void write_program(const Program program, const char* output_path){
 		throw_error(ERROR_INVALID_FILE_PATH, output_path);
 	}
 
+	const char* magic_number = "vfe:"; // magic number to identify vfe executables
+
+	if(fwrite(magic_number, 4, 1, file) != 1){
+		fprintf(stderr, "[INTERNAL ERROR] Could Not Write Identifying Magic Number\n");
+		fclose(file);
+		exit(INTERNAL_ERROR_INTERNAL);
+	}
+
+	// 0 for now ========================================
+	const uint64_t program_start_position = 0;
+
+	if(fwrite(&program_start_position, sizeof(uint64_t), 1, file) != 1){
+		fprintf(stderr, "[INTERNAL ERROR] Could Not Write Program Start Position\n");
+		fclose(file);
+		exit(INTERNAL_ERROR_INTERNAL);
+	}
+
+	if(fwrite(&entry_point_position, sizeof(uint64_t), 1, file) != 1){
+		fprintf(stderr, "[INTERNAL ERROR] Could Not Write Entry Point Position\n");
+		fclose(file);
+		exit(INTERNAL_ERROR_INTERNAL);
+	}
+
 	size_t written = 0;
 
 	for(; written < program.size; written += program.size * fwrite(program.data, program.size, 1, file));
 
 	if(written != program.size){
-		printf("[ERROR] Expected To Write %zu bytes, Wrote %zu Instead\n", program.size, written);
+		printf("[INTERNAL ERROR] Expected To Write %zu bytes, Wrote %zu Instead\n", program.size, written);
 		exit(INTERNAL_ERROR_INTERNAL);
 	}
 
@@ -547,11 +566,11 @@ int main(int argc, char** argv){
 		return ERROR_INVALID_USAGE;
 	}
 
-	if(argc == 2 && compare_str((String){.c_str = argv[1],.size = 7}, MKSTR("--help"))){
+	if(argc == 2 && compare_str((String){.c_str = argv[1],.size = 6}, MKSTR("--help"))){
 		printf(
 			"[HELP] Usage:\n"
 			"\tTo compile use: ./fiction <path_to_input_file> <optional: path_to_output_executable>\n"
-			"\tTo de-compile use ./fiction <path_to_executable> -r\n"
+			"\tTo de-compile use: ./fiction <path_to_executable> -r\n"
 		);
 		return 0;
 	}
@@ -584,20 +603,47 @@ int main(int argc, char** argv){
 			printf("[ERROR] Invalid File Path '%s'\n", argv[1]);
 			exit(ERROR_INVALID_FILE_PATH);
 		}
+
+		unsigned char meta[30];
+
+		if(fread(meta, 4 * sizeof(char) + 2 * sizeof(uint64_t), 1, file) != 1){
+			throw_error(ERROR_INVALID_EXECUTABLE, NULL);
+		}
+
+		if((meta[0] != 'v') || (meta[1] != 'f') || (meta[2] != 'e') || (meta[3] != ':')){
+			fprintf(stderr, "[ERROR] Incorrect Magic Number\n");
+        	throw_error(ERROR_INVALID_EXECUTABLE, NULL);
+		}
+
+		const uint64_t program_start_position = *(uint64_t*)(meta + 4 * sizeof(char));
+    	const uint64_t entry_point = *(uint64_t*)(meta + 4 * sizeof(char) + sizeof(uint64_t));
+
+
 		unsigned char pdata[1024];
 
 		Program program = (Program){.data = pdata, .size = 0, .capacity = 1024};
 
+		unsigned int program_resized = 0;
+
+
 		for(; !feof(file);){
 			program.size += SIZEOF_CHUNK * fread(program.data + program.size, SIZEOF_CHUNK, program.capacity / SIZEOF_CHUNK, file);
 			if(program.size >= program.capacity){
-				resize_stream(&program, 2 * program.capacity);
+				unsigned char* old_data = program.data;
+				program.capacity *= 2;
+    			program.data = malloc(program.capacity);
+				memcpy(program.data, old_data, program.size);
+				if(program_resized != 0){
+					free(old_data);
+				}
+				program_resized += 1;
 			}
 		}
 
 		fclose(file);
 
 		printf("size of program: %zu bytes\n\n", program.size);
+		printf("entry point: %" PRIu64 "\n\n", entry_point);
 
 		for(size_t i = 0; i < program.size; i += print_inst(program, i));
 
@@ -619,7 +665,9 @@ int main(int argc, char** argv){
 
 	parse(&program, file);
 
-	resolve_unresolved_labels(&program);
+	if(!(flags & CFLAG_MAINFOUND)){
+		throw_error(ERROR_MISSING_ENTRYPOINT, NULL);
+	}
 
 	write_program(program, (argc == 3)? argv[2] : "out.virtual");
 }

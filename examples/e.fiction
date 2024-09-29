@@ -1,58 +1,60 @@
 #define N_ITER 10.0f
 
-push 1.0f;
-dup;
-push 1.0f;
+main:
+
+    push 1.0f;
+    dup;
+    push 1.0f;
 
 
-loop:
+    loop:
 
-push 1.0f;
+    push 1.0f;
 
-push 1;
-read;
-push 1.0f;
-plusf;
+    push 1;
+    read;
+    push 1.0f;
+    plusf;
 
-push 1;
-gsp;
-push 1;
-minusu;
-set;
+    push 1;
+    gsp;
+    push 1;
+    minusu;
+    set;
 
-divf;
-push 2;
-read;
-mulf;
-push 2;
-gsp;
-push 1;
-minusu;
-set;
+    divf;
+    push 2;
+    read;
+    mulf;
+    push 2;
+    gsp;
+    push 1;
+    minusu;
+    set;
 
-push 0;
-read;
-plusf;
-push 0;
-gsp;
-push 1;
-minusu;
-set;
-pop;
+    push 0;
+    read;
+    plusf;
+    push 0;
+    gsp;
+    push 1;
+    minusu;
+    set;
+    pop;
 
-push 1;
-read;
-push N_ITER;
-smallerf;
-push loop;
-jmpf;
+    push 1;
+    read;
+    push N_ITER;
+    smallerf;
+    push loop;
+    jmpf;
 
 
-pop;
-pop;
-push 1.0f;
-plusf;
-dump;
-halt;
+    pop;
+    pop;
+    push 1.0f;
+    plusf;
+    dump;
+    halt;
 
 
