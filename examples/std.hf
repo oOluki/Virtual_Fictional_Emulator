@@ -17,20 +17,18 @@ story_factorial:
     jmpf
     dup
 
-    story_internal_factorial_loop: ;;;; stack at this point ret, n!, n
+    story_internal_factorial_loop: ;;;; stack at this point ret, n, n - 1
     dup
     push 1
     minusu
     gso 1
     gso 1
-    dump
     set
     reads 2
     mulu
     gso 2
     gso 1
     set
-    dump
     pop
     dup
     push 1

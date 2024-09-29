@@ -107,8 +107,9 @@ size_t eval_inst(size_t inst_address){
         vm.stack[vm.stack_size - 1] = vm.stack[i];
     } return sizeof(Inst);
     case INSTRUCTION_READS:{
-        vm.stack[vm.stack_size++] =
+        vm.stack[vm.stack_size] =
         vm.stack[vm.stack_size - 1 - (*(Var*)(vm.internal_memory + inst_address + sizeof(Inst))).as_uint64];
+        vm.stack_size += 1;
     } return sizeof(Inst) + sizeof(Var);
     case INSTRUCTION_SET:
         vm.stack[vm.stack[vm.stack_size - 2].as_uint64] =
